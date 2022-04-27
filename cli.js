@@ -1,6 +1,5 @@
 #!/usr/bin/env node
 import meow from 'meow';
-import unicornFun from 'unicorn-fun';
 
 const cli = meow(`
 	Usage
@@ -23,4 +22,4 @@ const cli = meow(`
 	}
 });
 
-console.log(moduleName(cli.input[0] || 'unicorns', cli.flags));
+console.log((cli.input[0] || 'unicorns') + ' & ' + Object.values(cli.flags));
