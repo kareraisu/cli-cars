@@ -1,9 +1,9 @@
 {
-	"name": "unicorn-fun-cli",
+	"name": "cli-cars",
 	"version": "0.0.0",
 	"description": "My awesome command-line tool",
 	"license": "MIT",
-	"repository": "YOUR-GITHUB-USERNAME/unicorn-fun-cli",
+	"repository": "kareraisu/cli-cars",
 	"author": {
 		"name": "YOUR NAME",
 		"email": "YOUR EMAIL",
@@ -28,9 +28,6 @@
 		"unicorn",
 		"fun"
 	],
-	"dependencies": {
-		"meow": "^9.0.0"
-	},
 	"devDependencies": {
 		"ava": "^3.15.0",
 		"execa": "^5.0.0",
