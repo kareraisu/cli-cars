@@ -16,6 +16,8 @@ const vehiculos = []
 
 let opciones = {}
 
+let claves = []
+
 // If the HTTP-status is 200-299, then get the body
 if (response.ok) { // si el HTTP-status es 200-299
 	// obtener cuerpo de la respuesta (método debajo)
@@ -26,9 +28,10 @@ if (response.ok) { // si el HTTP-status es 200-299
 	let filas = data.split("\r\n")
 	console.log(filas)
 
-	let claves = filas.shift().split(",")
-
-	claves = claves.map(el => el.toLowerCase())
+	claves = filas
+		.shift()
+		.split(",")
+		.map(el => el.toLowerCase())
 	
 	for (let clave of claves) {
 		opciones[clave] = []
@@ -67,8 +70,6 @@ const rl = readline.createInterface({
 `);
 		filterOption = parseInt(filterOption);
 
-		// dos For y un if
-
 		for (let vehiculo of vehiculos) {
 			
 			for (let key in opciones) {
@@ -78,55 +79,25 @@ const rl = readline.createInterface({
 			}
 		}
 
+		function listarOpciones (userInput){
+			const propiedad = claves[userInput-1]
+			let indiceOp = 1
+
+			console.log("Estas son las opciones para:", propiedad)
+
+			for (let opcion of opciones[propiedad]) {
+				console.log(`${indiceOp}`+" - "+opcion)
+				indiceOp++
+			}
+		}
+
 
 		if (filterOption >= 1 && filterOption <= 6) {
-			switch (filterOption) {
-				case 1:
-					console.log("Filter by BRAND");
-					
-					const marcaLength = Object.keys(opciones.marca).length
+			listarOpciones (filterOption)
 
-					for (let i; i < marcaLength; i++ ) {
-						console.log(opciones.marca[i])
-						console.log("prueba del for")
-					}
-  
-					let i = 0
-					while (i < marcaLength) { 
-						console.log(`${i}`+" - "+opciones.marca[i])
-						i++;
-					  }
-
-					console.log("The total is: ",  marcaLength)
-					
-					break;
-				case 2:
-					// code block
-					console.log("Filter by MODEL");
-			
-					break;
-				case 3:
-					// code block
-					console.log("Filter by YEAR");
-					break;
-				case 4:
-					// code block
-					console.log("Filter by MOTOR/ENGINE");
-					break;
-				case 5:
-					// code block
-					console.log("Filter by TYPE");
-					break;
-				case 6:
-					// code block
-					console.log("Filter by PURPOSE");
-					break;
-				default:
-					// code block
-					console.log("VER Como tratar otras opciones");
-			}
 		} else {
 			filterOption = await rl.question(`Elegi una opcion entre 1 y 6`)
+			// TODO solve if the input is not between 1 & 6 
 		}
 
 		rl.close();
