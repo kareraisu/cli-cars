@@ -14,7 +14,7 @@ const response = await fetch(URL)
 
 const vehiculos = [] 
 
-const marcas = []
+let opciones = {}
 
 // If the HTTP-status is 200-299, then get the body
 if (response.ok) { // si el HTTP-status es 200-299
@@ -29,8 +29,10 @@ if (response.ok) { // si el HTTP-status es 200-299
 	let claves = filas.shift().split(",")
 
 	claves = claves.map(el => el.toLowerCase())
-
-	console.log(claves)
+	
+	for (let clave of claves) {
+		opciones[clave] = []
+	}
 
 	for (let fila of filas){
 		const valores = fila.split(",")
@@ -39,15 +41,11 @@ if (response.ok) { // si el HTTP-status es 200-299
 		
 		const vehiculo = Object.fromEntries(entries)
 		vehiculos.push(vehiculo)
-
-		console.log("mi colección: ", vehiculos)
 	}
 
   } else {
 	alert("Error-HTTP: " + response.status);
 };
-
-
 
 const rl = readline.createInterface({
 	input: process.stdin,
@@ -69,22 +67,43 @@ const rl = readline.createInterface({
 `);
 		filterOption = parseInt(filterOption);
 
+		// dos For y un if
+
+		for (let vehiculo of vehiculos) {
+			
+			for (let key in opciones) {
+				if (! opciones[key].includes(vehiculo[key])) {
+					opciones[key].push(vehiculo[key])
+				}
+			}
+		}
+
+
 		if (filterOption >= 1 && filterOption <= 6) {
 			switch (filterOption) {
 				case 1:
 					console.log("Filter by BRAND");
-					for (let vehiculo of vehiculos) {
-						if (! (marcas.includes(vehiculo.marca)) ) {
+					
+					const marcaLength = Object.keys(opciones.marca).length
 
-							marcas.push(vehiculo.marca)
-						}
+					for (let i; i < marcaLength; i++ ) {
+						console.log(opciones.marca[i])
+						console.log("prueba del for")
 					}
-					console.log(marcas)
+  
+					let i = 0
+					while (i < marcaLength) { 
+						console.log(`${i}`+" - "+opciones.marca[i])
+						i++;
+					  }
 
+					console.log("The total is: ",  marcaLength)
+					
 					break;
 				case 2:
 					// code block
 					console.log("Filter by MODEL");
+			
 					break;
 				case 3:
 					// code block
