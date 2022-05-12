@@ -55,55 +55,77 @@ const rl = readline.createInterface({
 	output: process.stdout,
 });
 
+function listProperties() {
+	let index = 0 
+
+	for (let c of claves){
+		console.log(`${index+1}`+". "+c)
+		index++
+	}
+
+}
+
+async function getUserInput () {
+		
+	listProperties()
+
+	let filterOption =
+		await rl.question(`Ingrese la opcion deseada`);
+
+	filterOption = parseInt(filterOption);
+
+	for (let vehiculo of vehiculos) {
+		
+		for (let key in opciones) {
+			if (! opciones[key].includes(vehiculo[key])) {
+				opciones[key].push(vehiculo[key])
+			}
+		}
+	}
+
+	function listOptions (userInput){
+		const propiedad = claves[userInput-1]
+		let indiceOp = 1
+
+		console.log("Estas son las opciones para:", propiedad)
+
+		for (let opcion of opciones[propiedad]) {
+			console.log(`${indiceOp}`+" - "+opcion)
+			indiceOp++
+		}
+	}
+
+	if (filterOption == 0) {
+		return
+	}
+
+	if (filterOption >= 1 && filterOption <= 6) {
+		listOptions (filterOption)
+
+	} else {
+		console.log(`
+		La opción ingresada no es válida.
+		Las opciones disponibles son:`)
+
+		// Here we recurse
+		await getUserInput()
+		
+		// TODO solve if the input is not between 1 & 6
+		// If the user introduces the number 0, the application should finish
+		// If the option entered the application should validate the input and ask again until the user introduce a correct option
+	}
+
+}
 
 //usage inside aync function do not need closure demo only*
 (async () => {
-	try {
-		let filterOption =
-			await rl.question(`Hola soy catalogo de auto, que filtros dease aplicar
-		1. Brand
-		2. Model
-		3. Year
-		4. Motor/engine
-		5. Type
-		6. Purpose
-`);
-		filterOption = parseInt(filterOption);
+	
+	console.log("Hola soy catalogo de auto, los filtros que se pueden aplicar son:")
+		
+ 	await getUserInput()
 
-		for (let vehiculo of vehiculos) {
-			
-			for (let key in opciones) {
-				if (! opciones[key].includes(vehiculo[key])) {
-					opciones[key].push(vehiculo[key])
-				}
-			}
-		}
-
-		function listarOpciones (userInput){
-			const propiedad = claves[userInput-1]
-			let indiceOp = 1
-
-			console.log("Estas son las opciones para:", propiedad)
-
-			for (let opcion of opciones[propiedad]) {
-				console.log(`${indiceOp}`+" - "+opcion)
-				indiceOp++
-			}
-		}
-
-
-		if (filterOption >= 1 && filterOption <= 6) {
-			listarOpciones (filterOption)
-
-		} else {
-			filterOption = await rl.question(`Elegi una opcion entre 1 y 6`)
-			// TODO solve if the input is not between 1 & 6 
-		}
-
-		rl.close();
-	} catch (e) {
-		console.error("unable to rl.question", e);
-	}
+	rl.close();
+	
 })();
 
 //when done reading rl.question exit program
