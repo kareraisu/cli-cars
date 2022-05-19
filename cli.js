@@ -12,13 +12,13 @@ const URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRXhp9bt3GgfL0ZwpC0
 // Get the CVS
 const response = await fetch(URL)
 
-const vehiculos = [] 
+const vehicles = [] 
 
-let opciones = {}
+let options = {}
 
-let claves = []
+let keys = []
 
-let propiedad 
+let property 
 
 // If the HTTP-status is 200-299, then get the body
 if (response.ok) { // si el HTTP-status es 200-299
@@ -27,28 +27,28 @@ if (response.ok) { // si el HTTP-status es 200-299
 	const data = await response.text();
 	console.log(data)
 
-	let filas = data.split("\r\n")
-	console.log(filas)
+	let rows = data.split("\r\n")
+	console.log(rows)
 
-	claves = filas
+	keys = rows
 		.shift()
 		.split(",")
 		.map(el => el.toLowerCase())
 	
-	for (let clave of claves) {
-		opciones[clave] = []
+	for (let key of keys) {
+		options[key] = []
 	}
 
-	for (let fila of filas){
-		const valores = fila.split(",")
+	for (let row of rows){
+		const values = row.split(",")
 
-		var entries = claves.map((elemento, indice) => ([elemento, valores[indice]]));
+		var entries = keys.map((element, indice) => ([element, values[indice]]));
 		
-		const vehiculo = Object.fromEntries(entries)
-		vehiculos.push(vehiculo)
+		const vehicle = Object.fromEntries(entries)
+		vehicles.push(vehicle)
 	}
 
-	console.log("Mis vehiculos son: ", vehiculos)
+	//console.log("Mis vehiculos son: ", vehicles)
 
   } else {
 	alert("Error-HTTP: " + response.status);
@@ -62,7 +62,7 @@ const rl = readline.createInterface({
 function listProperties() {
 	let index = 0 
 
-	for (let c of claves){
+	for (let c of keys){
 		console.log(`${index+1}`+". "+c)
 		index++
 	}
@@ -74,39 +74,39 @@ async function getUserInput () {
 	listProperties()
 
 	let filterOption =
-		await rl.question(`Ingrese la opcion deseada`);
+		await rl.question(`Enter a desired option:`);
 
 	filterOption = parseInt(filterOption);
 
-	for (let vehiculo of vehiculos) {
+	for (let vehicle of vehicles) {
 		
-		for (let key in opciones) {
-			if (! opciones[key].includes(vehiculo[key])) {
-				opciones[key].push(vehiculo[key])
+		for (let key in options) {
+			if (! options[key].includes(vehicle[key])) {
+				options[key].push(vehicle[key])
 			}
 		}
 	}
 
 	// Here we list the options for the option entered
 	async function listOptions (userInput){
-		propiedad = claves[userInput-1]
-		let indiceOp = 1
+		property = keys[userInput-1]
+		let optionIndex = 1
 
-		console.log("Estas son las opciones para:", propiedad)
+		console.log("These are the options for:", property)
 
-		for (let opcion of opciones[propiedad]) {
-			console.log(`${indiceOp}`+" - "+opcion)
-			indiceOp++
+		for (let option of options[property]) {
+			console.log(`${optionIndex}`+" - "+option)
+			optionIndex++
 		}
 
 		// Aqui debería llamar a mi funcion en donde consulta si quiere listar por marca, modelo o salir con 0
-		let getNewOption = await rl.question(`Ingrese una opción DESEADA para listar los vehículo/s`);
+		let getNewOption = await rl.question(`Please enter a DESIRED option to list the vehicles`);
 		
 		//Add the sanity check - Create a function for the Sanity Check - Pasar el conjunto de posibles respuestas validas y la pregunta al usuario
 		let newOption = parseInt(getNewOption);
 		newOption = newOption-1
 
-		let optionString = opciones[propiedad][newOption]
+		let optionString = options[property][newOption]
 
 		listFilteredVehicle(optionString)
 
@@ -116,18 +116,24 @@ async function getUserInput () {
 	function listFilteredVehicle (optionSelected){
 		
 		if (optionSelected == undefined) {
-			console.log("La opción ingresada no es válida, no se encuentra en el conjunto de opciones válidas")
+			console.log("The option entered is not valid, it is not in the set of valid options")
 			return
 
 		}
 		
-		console.log("Los vehiculos son:")
-		
-		const filteredVehicles = vehiculos.filter(vehiculo => vehiculo[propiedad] == optionSelected)
+		const filteredVehicles = vehicles.filter(vehicle => vehicle[property] == optionSelected)
 
-		console.log("ESTOS SON	", filteredVehicles)
+		//console.log("ESTOS SON	", filteredVehicles)
 		// listar los vehiculos, imprimir mas corto: marca, modelo y año
 		
+		let optionIndex = 1
+
+		console.log("The vehicles are:")
+
+		for (let vehicle of filteredVehicles){
+			console.log(`${optionIndex}`+" - " , vehicle[keys[0]], vehicle[keys[1]], vehicle[keys[2]])
+			optionIndex++
+		}
 
 	}
 
@@ -136,8 +142,6 @@ async function getUserInput () {
 	if (filterOption == 0) {
 		return
 	}
-
-	let newOption;
 
 	if (filterOption >= 1 && filterOption <= 6) {
 		await listOptions (filterOption)
