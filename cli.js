@@ -18,6 +18,8 @@ let opciones = {}
 
 let claves = []
 
+let propiedad 
+
 // If the HTTP-status is 200-299, then get the body
 if (response.ok) { // si el HTTP-status es 200-299
 	// obtener cuerpo de la respuesta (método debajo)
@@ -45,6 +47,8 @@ if (response.ok) { // si el HTTP-status es 200-299
 		const vehiculo = Object.fromEntries(entries)
 		vehiculos.push(vehiculo)
 	}
+
+	console.log("Mis vehiculos son: ", vehiculos)
 
   } else {
 	alert("Error-HTTP: " + response.status);
@@ -83,8 +87,9 @@ async function getUserInput () {
 		}
 	}
 
-	function listOptions (userInput){
-		const propiedad = claves[userInput-1]
+	// Here we list the options for the option entered
+	async function listOptions (userInput){
+		propiedad = claves[userInput-1]
 		let indiceOp = 1
 
 		console.log("Estas son las opciones para:", propiedad)
@@ -93,14 +98,49 @@ async function getUserInput () {
 			console.log(`${indiceOp}`+" - "+opcion)
 			indiceOp++
 		}
+
+		// Aqui debería llamar a mi funcion en donde consulta si quiere listar por marca, modelo o salir con 0
+		let getNewOption = await rl.question(`Ingrese una opción DESEADA para listar los vehículo/s`);
+		
+		//Add the sanity check - Create a function for the Sanity Check - Pasar el conjunto de posibles respuestas validas y la pregunta al usuario
+		let newOption = parseInt(getNewOption);
+		newOption = newOption-1
+
+		let optionString = opciones[propiedad][newOption]
+
+		listFilteredVehicle(optionString)
+
 	}
 
+	// Here list again the vehicle/s according a new option entered
+	function listFilteredVehicle (optionSelected){
+		
+		if (optionSelected == undefined) {
+			console.log("La opción ingresada no es válida, no se encuentra en el conjunto de opciones válidas")
+			return
+
+		}
+		
+		console.log("Los vehiculos son:")
+		
+		const filteredVehicles = vehiculos.filter(vehiculo => vehiculo[propiedad] == optionSelected)
+
+		console.log("ESTOS SON	", filteredVehicles)
+		// listar los vehiculos, imprimir mas corto: marca, modelo y año
+		
+
+	}
+
+
+	// Here the application finishes if user input a Cero
 	if (filterOption == 0) {
 		return
 	}
 
+	let newOption;
+
 	if (filterOption >= 1 && filterOption <= 6) {
-		listOptions (filterOption)
+		await listOptions (filterOption)
 
 	} else {
 		console.log(`
