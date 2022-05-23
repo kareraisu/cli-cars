@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import * as readline from 'node:readline/promises';
+import * as readline from "node:readline/promises";
 
 // Obtener los datos, un CSV
 // 1 como hacer la request
@@ -7,77 +7,136 @@ import * as readline from 'node:readline/promises';
 // 2 Como convertir un CSV a un JSON
 // 3 Ver como filtar segun las opciones
 
-const URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRXhp9bt3GgfL0ZwpC05_DOH2eIAK4ojTTXKdg_tdl9Gg07TFZnbKI8lsNtLJ14EaI218cyu23f25LE/pub?gid=0&single=true&output=csv"
+const URL =
+	"https://docs.google.com/spreadsheets/d/e/2PACX-1vRXhp9bt3GgfL0ZwpC05_DOH2eIAK4ojTTXKdg_tdl9Gg07TFZnbKI8lsNtLJ14EaI218cyu23f25LE/pub?gid=0&single=true&output=csv";
 
 // Get the CVS
-const response = await fetch(URL)
+const response = await fetch(URL);
 
-const vehicles = [] 
+const vehicles = [];
 
-let options = {}
+let options = {};
 
-let keys = []
-
-let property 
+let tableHeaders = [];
 
 // If the HTTP-status is 200-299, then get the body
-if (response.ok) { // si el HTTP-status es 200-299
+if (response.ok) {
+	// si el HTTP-status es 200-299
 	// obtener cuerpo de la respuesta (método debajo)
-	
+
 	const data = await response.text();
-	console.log(data)
+	console.log(data);
 
-	let rows = data.split("\r\n")
-	console.log(rows)
+	let rows = data.split("\r\n");
+	console.log(rows);
 
-	keys = rows
+	tableHeaders = rows
 		.shift()
 		.split(",")
-		.map(el => el.toLowerCase())
-	
-	for (let key of keys) {
-		options[key] = []
+		.map((el) => el.toLowerCase());
+
+	for (let header of tableHeaders) {
+		options[header] = [];
 	}
 
-	for (let row of rows){
-		const values = row.split(",")
+	for (let row of rows) {
+		const values = row.split(",");
 
-		var entries = keys.map((element, indice) => ([element, values[indice]]));
-		
-		const vehicle = Object.fromEntries(entries)
-		vehicles.push(vehicle)
+		var entries = tableHeaders.map((element, indice) => [
+			element,
+			values[indice],
+		]);
+
+		const vehicle = Object.fromEntries(entries);
+		vehicles.push(vehicle);
 	}
 
 	//console.log("Mis vehiculos son: ", vehicles)
-
-  } else {
+} else {
 	alert("Error-HTTP: " + response.status);
-};
+}
 
 const rl = readline.createInterface({
 	input: process.stdin,
 	output: process.stdout,
 });
 
-function listProperties() {
-	let index = 0 
+async function printAndGetInput(options, isInMainMenu) {
+	let index = 0;
 
-	for (let c of keys){
-		console.log(`${index+1}`+". "+c)
-		index++
+	let selectedOption;
+
+	if (isInMainMenu) {
+		console.log("0. (Exit)");
+	} else {
+		console.log("0. (Go back)");
+	}
+
+	for (let option of options) {
+		console.log(`${index + 1}` + ". " + option);
+		index++;
+	}
+
+	selectedOption = await rl.question(`Enter a desired option:`);
+
+	// If the user input is not a number this will give a NaN
+	selectedOption = parseInt(selectedOption);
+
+	if (selectedOption == 0) {
+		if (isInMainMenu) {
+			// Finalize the program
+			process.exit();
+		} else {
+			// Implement the logic for Go Back
+		}
+	}
+
+	if (selectedOption <= options.length) {
+		return selectedOption;
+	} else {
+		console.log(`
+		La opción ingresada no es válida.
+		Las opciones disponibles son:`);
+
+		// Here we recurse
+		await printAndGetInput(options, isInMainMenu);
+	}
+}
+
+// Here list again the vehicle/s according a new option entered
+function listFilteredVehicle(property, optionSelected) {
+	if (optionSelected == undefined) {
+		console.log(
+			"The option entered is not valid, it is not in the set of valid options"
+		);
+		return;
+	}
+
+	const filteredVehicles = vehicles.filter(
+		(vehicle) => vehicle[property] == optionSelected
+	);
+
+	//console.log("ESTOS SON	", filteredVehicles)
+	// listar los vehiculos, imprimir mas corto: marca, modelo y año
+
+	let optionIndex = 1;
+
+	console.log("The vehicles are:");
+
+	for (let vehicle of filteredVehicles) {
+		console.log(
+			`${optionIndex}` + ".",
+			vehicle[tableHeaders[0]],
+			vehicle[tableHeaders[1]],
+			vehicle[tableHeaders[2]]
+		);
+		optionIndex++;
 	}
 
 }
 
-async function getUserInput () {
-		
-	listProperties()
-
-	let filterOption =
-		await rl.question(`Enter a desired option:`);
-
-	filterOption = parseInt(filterOption);
-
+// This collects the options from the Vehicles into a global dictionary of lists
+function collectOptions (){
 	for (let vehicle of vehicles) {
 		
 		for (let key in options) {
@@ -86,90 +145,38 @@ async function getUserInput () {
 			}
 		}
 	}
-
-	// Here we list the options for the option entered
-	async function listOptions (userInput){
-		property = keys[userInput-1]
-		let optionIndex = 1
-
-		console.log("These are the options for:", property)
-
-		for (let option of options[property]) {
-			console.log(`${optionIndex}`+" - "+option)
-			optionIndex++
-		}
-
-		// Aqui debería llamar a mi funcion en donde consulta si quiere listar por marca, modelo o salir con 0
-		let getNewOption = await rl.question(`Please enter a DESIRED option to list the vehicles`);
-		
-		//Add the sanity check - Create a function for the Sanity Check - Pasar el conjunto de posibles respuestas validas y la pregunta al usuario
-		let newOption = parseInt(getNewOption);
-		newOption = newOption-1
-
-		let optionString = options[property][newOption]
-
-		listFilteredVehicle(optionString)
-
-	}
-
-	// Here list again the vehicle/s according a new option entered
-	function listFilteredVehicle (optionSelected){
-		
-		if (optionSelected == undefined) {
-			console.log("The option entered is not valid, it is not in the set of valid options")
-			return
-
-		}
-		
-		const filteredVehicles = vehicles.filter(vehicle => vehicle[property] == optionSelected)
-
-		//console.log("ESTOS SON	", filteredVehicles)
-		// listar los vehiculos, imprimir mas corto: marca, modelo y año
-		
-		let optionIndex = 1
-
-		console.log("The vehicles are:")
-
-		for (let vehicle of filteredVehicles){
-			console.log(`${optionIndex}`+" - " , vehicle[keys[0]], vehicle[keys[1]], vehicle[keys[2]])
-			optionIndex++
-		}
-
-	}
-
-
-	// Here the application finishes if user input a Cero
-	if (filterOption == 0) {
-		return
-	}
-
-	if (filterOption >= 1 && filterOption <= 6) {
-		await listOptions (filterOption)
-
-	} else {
-		console.log(`
-		La opción ingresada no es válida.
-		Las opciones disponibles son:`)
-
-		// Here we recurse
-		await getUserInput()
-		
-		// TODO solve if the input is not between 1 & 6
-		// If the user introduces the number 0, the application should finish
-		// If the option entered the application should validate the input and ask again until the user introduce a correct option
-	}
-
 }
 
-//usage inside aync function do not need closure demo only*
+
+//usage inside aync function do not need closure demo only
 (async () => {
 	
-	console.log("Hola soy catalogo de auto, los filtros que se pueden aplicar son:")
-		
- 	await getUserInput()
+	collectOptions()
+	
+	console.log(
+		"Hola soy catalogo de auto, los filtros que se pueden aplicar son:"
+	);
+
+	// Show headers
+	const userInput = await printAndGetInput(tableHeaders, true);
+
+	// userInput
+	let property = tableHeaders[userInput - 1];
+
+	console.log("These are the options for:", property);
+
+	let newOptionSelected = await printAndGetInput(options[property]);
+
+	// We decrement to be 0-indexed
+	newOptionSelected = newOptionSelected - 1;
+
+	const optionString = options[property][newOptionSelected];
+
+	listFilteredVehicle(property, optionString);
+
+	// create a Main function, the listOptions is not necesary anymore.
 
 	rl.close();
-	
 })();
 
 //when done reading rl.question exit program
