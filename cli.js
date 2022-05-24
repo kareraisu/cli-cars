@@ -19,6 +19,8 @@ let options = {};
 
 let tableHeaders = [];
 
+let menuLevel;
+
 // If the HTTP-status is 200-299, then get the body
 if (response.ok) {
 	// si el HTTP-status es 200-299
@@ -66,6 +68,8 @@ async function printAndGetInput(options, isInMainMenu) {
 
 	let selectedOption;
 
+	console.log();
+
 	if (isInMainMenu) {
 		console.log("0. (Exit)");
 	} else {
@@ -87,19 +91,22 @@ async function printAndGetInput(options, isInMainMenu) {
 			// Finalize the program
 			process.exit();
 		} else {
-			// Implement the logic for Go Back
+			menuLevel = 0;
+			return selectedOption;
 		}
 	}
 
 	if (selectedOption <= options.length) {
+		// Increment Menu counter
+		menuLevel = 1;
 		return selectedOption;
 	} else {
 		console.log(`
 		La opción ingresada no es válida.
 		Las opciones disponibles son:`);
 
-		// Here we recurse
-		await printAndGetInput(options, isInMainMenu);
+		// Here we recurse (AND we need to return the value else we lose it)
+		return await printAndGetInput(options, isInMainMenu);
 	}
 }
 
@@ -132,49 +139,51 @@ function listFilteredVehicle(property, optionSelected) {
 		);
 		optionIndex++;
 	}
-
 }
 
 // This collects the options from the Vehicles into a global dictionary of lists
-function collectOptions (){
+function collectOptions() {
 	for (let vehicle of vehicles) {
-		
 		for (let key in options) {
-			if (! options[key].includes(vehicle[key])) {
-				options[key].push(vehicle[key])
+			if (!options[key].includes(vehicle[key])) {
+				options[key].push(vehicle[key]);
 			}
 		}
 	}
 }
 
-
 //usage inside aync function do not need closure demo only
 (async () => {
-	
-	collectOptions()
-	
+	collectOptions();
+
+	menuLevel = 0;
+
 	console.log(
 		"Hola soy catalogo de auto, los filtros que se pueden aplicar son:"
 	);
 
-	// Show headers
-	const userInput = await printAndGetInput(tableHeaders, true);
+	let property;
 
-	// userInput
-	let property = tableHeaders[userInput - 1];
+	while (true) {
+		if (menuLevel == 0) {
+			// Show headers
+			const userInput = await printAndGetInput(tableHeaders, true);
 
-	console.log("These are the options for:", property);
+			// userInput
+			property = tableHeaders[userInput - 1];
 
-	let newOptionSelected = await printAndGetInput(options[property]);
+			console.log("These are the options for:", property);
+		}
 
-	// We decrement to be 0-indexed
-	newOptionSelected = newOptionSelected - 1;
+		let newOptionSelected = await printAndGetInput(options[property]);
 
-	const optionString = options[property][newOptionSelected];
+		// We decrement to be 0-indexed
+		newOptionSelected = newOptionSelected - 1;
 
-	listFilteredVehicle(property, optionString);
+		const optionString = options[property][newOptionSelected];
 
-	// create a Main function, the listOptions is not necesary anymore.
+		listFilteredVehicle(property, optionString);
+	}
 
 	rl.close();
 })();
