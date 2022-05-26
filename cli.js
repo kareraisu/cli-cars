@@ -81,6 +81,7 @@ async function printAndGetInput(options, isInMainMenu) {
 		index++;
 	}
 
+	console.log();
 	selectedOption = await rl.question(`Enter a desired option:`);
 
 	// If the user input is not a number this will give a NaN
@@ -102,8 +103,8 @@ async function printAndGetInput(options, isInMainMenu) {
 		return selectedOption;
 	} else {
 		console.log(`
-		La opción ingresada no es válida.
-		Las opciones disponibles son:`);
+		The option entered is not valid.
+		The options are:`);
 
 		// Here we recurse (AND we need to return the value else we lose it)
 		return await printAndGetInput(options, isInMainMenu);
@@ -111,7 +112,7 @@ async function printAndGetInput(options, isInMainMenu) {
 }
 
 // Here list again the vehicle/s according a new option entered
-function listFilteredVehicle(property, optionSelected) {
+async function listFilteredVehicle(property, optionSelected) {
 	if (optionSelected == undefined) {
 		console.log(
 			"The option entered is not valid, it is not in the set of valid options"
@@ -123,12 +124,11 @@ function listFilteredVehicle(property, optionSelected) {
 		(vehicle) => vehicle[property] == optionSelected
 	);
 
-	//console.log("ESTOS SON	", filteredVehicles)
-	// listar los vehiculos, imprimir mas corto: marca, modelo y año
-
 	let optionIndex = 1;
 
+	console.log();
 	console.log("The vehicles are:");
+	console.log();
 
 	for (let vehicle of filteredVehicles) {
 		console.log(
@@ -138,6 +138,32 @@ function listFilteredVehicle(property, optionSelected) {
 			vehicle[tableHeaders[2]]
 		);
 		optionIndex++;
+	}
+
+	console.log();
+	console.log("E. (Exit)");
+
+	let exit = 1;
+
+	exitOrGoBack:
+	while (exit != "0" || exit != "e") {
+		exit = await rl.question(`Enter a desired option:`);
+
+		exit = exit.toLowerCase();
+
+		if (exit == "e") {
+			process.exit();
+		}
+
+		if (exit == "0") {
+			break exitOrGoBack
+		} else {
+			console.log(`
+			The option entered is not valid.
+			The options are:
+			O. Go Back
+			E. Exit`);
+		}
 	}
 }
 
