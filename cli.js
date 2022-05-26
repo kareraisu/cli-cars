@@ -1,67 +1,61 @@
 #!/usr/bin/env node
 import * as readline from "node:readline/promises";
 
-// Obtener los datos, un CSV
-// 1 como hacer la request
-// - Que sucede si no tengo conexion?. Manejar los errores.
-// 2 Como convertir un CSV a un JSON
-// 3 Ver como filtar segun las opciones
-
-const URL =
-	"https://docs.google.com/spreadsheets/d/e/2PACX-1vRXhp9bt3GgfL0ZwpC05_DOH2eIAK4ojTTXKdg_tdl9Gg07TFZnbKI8lsNtLJ14EaI218cyu23f25LE/pub?gid=0&single=true&output=csv";
-
-// Get the CVS
-const response = await fetch(URL);
-
-const vehicles = [];
-
-let options = {};
-
-let tableHeaders = [];
-
-let menuLevel;
-
-// If the HTTP-status is 200-299, then get the body
-if (response.ok) {
-	// si el HTTP-status es 200-299
-	// obtener cuerpo de la respuesta (método debajo)
-
-	const data = await response.text();
-	console.log(data);
-
-	let rows = data.split("\r\n");
-	console.log(rows);
-
-	tableHeaders = rows
-		.shift()
-		.split(",")
-		.map((el) => el.toLowerCase());
-
-	for (let header of tableHeaders) {
-		options[header] = [];
-	}
-
-	for (let row of rows) {
-		const values = row.split(",");
-
-		var entries = tableHeaders.map((element, indice) => [
-			element,
-			values[indice],
-		]);
-
-		const vehicle = Object.fromEntries(entries);
-		vehicles.push(vehicle);
-	}
-
-	//console.log("Mis vehiculos son: ", vehicles)
-} else {
-	alert("Error-HTTP: " + response.status);
-}
-
 const rl = readline.createInterface({
 	input: process.stdin,
 	output: process.stdout,
 });
+//when done reading rl, exit program
+rl.on("close", () => process.exit(0));
+
+const URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRXhp9bt3GgfL0ZwpC05_DOH2eIAK4ojTTXKdg_tdl9Gg07TFZnbKI8lsNtLJ14EaI218cyu23f25LE/pub?gid=0&single=true&output=csv";
+const vehicles = [];
+let options = {};
+let tableHeaders = [];
+let menuLevel = 0;
+
+async function fetchData() {
+	const response = await fetch(URL);
+	// If the HTTP-status is 200-299, then get the body
+	if (response.ok) {
+		const data = await response.text();
+		let rows = data.split("\r\n");
+		tableHeaders = rows
+			.shift()
+			.split(",")
+			.map((el) => el.toLowerCase());
+
+		for (let header of tableHeaders) {
+			options[header] = [];
+		}
+
+		for (let row of rows) {
+			const values = row.split(",");
+
+			var entries = tableHeaders.map((element, indice) => [
+				element,
+				values[indice],
+			]);
+
+			const vehicle = Object.fromEntries(entries);
+			vehicles.push(vehicle);
+		}
+	} else {
+		console.error("Failed to fetch data: " + response.status);
+		rl.close();
+	}
+}
+
+// This collects the options from the Vehicles into a global dictionary of lists
+function collectOptions() {
+	for (let vehicle of vehicles) {
+		for (let key in options) {
+			if (!options[key].includes(vehicle[key])) {
+				options[key].push(vehicle[key]);
+			}
+		}
+	}
+}
 
 async function printAndGetInput(options, isInMainMenu) {
 	let index = 0;
@@ -82,7 +76,7 @@ async function printAndGetInput(options, isInMainMenu) {
 	}
 
 	console.log();
-	selectedOption = await rl.question(`Enter a desired option:`);
+	selectedOption = await rl.question(`Enter a desired option: `);
 
 	// If the user input is not a number this will give a NaN
 	selectedOption = parseInt(selectedOption);
@@ -90,7 +84,7 @@ async function printAndGetInput(options, isInMainMenu) {
 	if (selectedOption == 0) {
 		if (isInMainMenu) {
 			// Finalize the program
-			process.exit();
+			rl.close();
 		} else {
 			menuLevel = 0;
 			return selectedOption;
@@ -103,17 +97,16 @@ async function printAndGetInput(options, isInMainMenu) {
 		return selectedOption;
 	} else {
 		console.log(`
-		The option entered is not valid.
-		The options are:`);
+The option entered is not valid.
+The options are:`);
 
-		// Here we recurse (AND we need to return the value else we lose it)
+		// Here we recurse (AND we need to return the value, or else we lose it)
 		return await printAndGetInput(options, isInMainMenu);
 	}
 }
 
-// Here list again the vehicle/s according a new option entered
-async function listFilteredVehicle(property, optionSelected) {
-	if (optionSelected == undefined) {
+async function listFilteredVehicles(property, selectedOption) {
+	if (selectedOption == undefined) {
 		console.log(
 			"The option entered is not valid, it is not in the set of valid options"
 		);
@@ -121,15 +114,15 @@ async function listFilteredVehicle(property, optionSelected) {
 	}
 
 	const filteredVehicles = vehicles.filter(
-		(vehicle) => vehicle[property] == optionSelected
+		(vehicle) => vehicle[property] == selectedOption
 	);
 
-	let optionIndex = 1;
-
+	
 	console.log();
 	console.log("The vehicles are:");
 	console.log();
-
+	
+	let optionIndex = 1;
 	for (let vehicle of filteredVehicles) {
 		console.log(
 			`${optionIndex}` + ".",
@@ -140,79 +133,59 @@ async function listFilteredVehicle(property, optionSelected) {
 		optionIndex++;
 	}
 
-	console.log();
-	console.log("E. (Exit)");
+	let exit;
 
-	let exit = 1;
+	while (true) {
+		exit = await rl.question(`
+What would you like to do?
+0. Go Back
+E. Exit
 
-	exitOrGoBack:
-	while (exit != "0" || exit != "e") {
-		exit = await rl.question(`Enter a desired option:`);
+Enter a desired option: `);
 
 		exit = exit.toLowerCase();
 
 		if (exit == "e") {
-			process.exit();
+			rl.close();
 		}
 
 		if (exit == "0") {
-			break exitOrGoBack
-		} else {
-			console.log(`
-			The option entered is not valid.
-			The options are:
-			O. Go Back
-			E. Exit`);
+			return
 		}
+
+		console.log(`The option entered is not valid.`);
 	}
 }
 
-// This collects the options from the Vehicles into a global dictionary of lists
-function collectOptions() {
-	for (let vehicle of vehicles) {
-		for (let key in options) {
-			if (!options[key].includes(vehicle[key])) {
-				options[key].push(vehicle[key]);
-			}
-		}
-	}
-}
+async function main() {
+	await fetchData();
 
-//usage inside aync function do not need closure demo only
-(async () => {
 	collectOptions();
 
-	menuLevel = 0;
-
+	console.log();
 	console.log(
-		"Hola soy catalogo de auto, los filtros que se pueden aplicar son:"
+		"Hello! Welcome to Ed's Car Catalog. Please select a filter:"
 	);
 
 	let property;
 
+	// Main loop
 	while (true) {
 		if (menuLevel == 0) {
 			// Show headers
 			const userInput = await printAndGetInput(tableHeaders, true);
-
-			// userInput
 			property = tableHeaders[userInput - 1];
-
 			console.log("These are the options for:", property);
 		}
 
-		let newOptionSelected = await printAndGetInput(options[property]);
-
+		let selectedOption = await printAndGetInput(options[property]);
 		// We decrement to be 0-indexed
-		newOptionSelected = newOptionSelected - 1;
+		selectedOption = selectedOption - 1;
+		const value = options[property][selectedOption];
 
-		const optionString = options[property][newOptionSelected];
-
-		listFilteredVehicle(property, optionString);
+		await listFilteredVehicles(property, value);
 	}
+};
 
-	rl.close();
-})();
-
-//when done reading rl.question exit program
-rl.on("close", () => process.exit(0));
+// Execute the main function
+main()
