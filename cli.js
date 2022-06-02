@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 import * as readline from "node:readline/promises";
+import fs from 'fs'
 
 const rl = readline.createInterface({
 	input: process.stdin,
@@ -14,32 +15,64 @@ let options = {};
 let tableHeaders = [];
 let menuLevel = 0;
 
+const filePath = '/Users/bts-041/Documents/JavaScript/vehicles.csv'
+
+function readFilePromise(filePath) {
+	
+	return new Promise(function(resolve, reject) {
+		// executor (the producing code, "singer")
+		fs.readFile(filePath, 'utf8', (err,data) => {
+			if (err) {
+			 reject(err)
+			}
+			resolve(data) 
+		});
+	});
+
+}
+
+function parseCSV(data) {
+	
+	let rows = data.split("\r\n");
+	tableHeaders = rows
+		.shift()
+		.split(",")
+		.map((el) => el.toLowerCase());
+
+	for (let header of tableHeaders) {
+		options[header] = [];
+	}
+
+	for (let row of rows) {
+		const values = row.split(",");
+
+		var entries = tableHeaders.map((element, indice) => [
+			element,
+			values[indice],
+		]);
+
+		const vehicle = Object.fromEntries(entries);
+		vehicles.push(vehicle);
+	}
+}
+
+// Read data from File System
+async function readData(){
+
+	const data = await readFilePromise(filePath)
+	
+	parseCSV(data)
+
+}
+
 async function fetchData() {
 	const response = await fetch(URL);
 	// If the HTTP-status is 200-299, then get the body
 	if (response.ok) {
 		const data = await response.text();
-		let rows = data.split("\r\n");
-		tableHeaders = rows
-			.shift()
-			.split(",")
-			.map((el) => el.toLowerCase());
 
-		for (let header of tableHeaders) {
-			options[header] = [];
-		}
+		parseCSV(data)
 
-		for (let row of rows) {
-			const values = row.split(",");
-
-			var entries = tableHeaders.map((element, indice) => [
-				element,
-				values[indice],
-			]);
-
-			const vehicle = Object.fromEntries(entries);
-			vehicles.push(vehicle);
-		}
 	} else {
 		console.error("Failed to fetch data: " + response.status);
 		rl.close();
@@ -158,7 +191,9 @@ Enter a desired option: `);
 }
 
 async function main() {
-	await fetchData();
+	//await fetchData();
+
+	await readData()
 
 	collectOptions();
 
