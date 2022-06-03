@@ -43,6 +43,7 @@ function parseCSV(data) {
 		options[header] = [];
 	}
 
+	let indexId = 0
 	for (let row of rows) {
 		const values = row.split(",");
 
@@ -52,17 +53,19 @@ function parseCSV(data) {
 		]);
 
 		const vehicle = Object.fromEntries(entries);
+		vehicle.id = indexId 
+		
 		vehicles.push(vehicle);
+		
+		indexId += 1
 	}
 }
 
 // Read data from File System
 async function readData(){
-
 	const data = await readFilePromise(filePath)
 	
 	parseCSV(data)
-
 }
 
 async function fetchData() {
@@ -98,7 +101,7 @@ async function printAndGetInput(options, isInMainMenu) {
 	console.log();
 
 	if (isInMainMenu) {
-		console.log("0. (Exit)");
+		console.log("Q. (Quit)");
 	} else {
 		console.log("0. (Go back)");
 	}
@@ -122,7 +125,9 @@ async function printAndGetInput(options, isInMainMenu) {
 			menuLevel = 0;
 			return selectedOption;
 		}
-	}
+		
+	}	
+
 
 	if (selectedOption <= options.length) {
 		// Increment Menu counter
@@ -150,7 +155,6 @@ async function listFilteredVehicles(property, selectedOption) {
 		(vehicle) => vehicle[property] == selectedOption
 	);
 
-	
 	console.log();
 	console.log("The vehicles are:");
 	console.log();
@@ -164,6 +168,7 @@ async function listFilteredVehicles(property, selectedOption) {
 			vehicle[tableHeaders[2]]
 		);
 		optionIndex++;
+		
 	}
 
 	let exit;
@@ -172,13 +177,15 @@ async function listFilteredVehicles(property, selectedOption) {
 		exit = await rl.question(`
 What would you like to do?
 0. Go Back
-E. Exit
+D. Delete
+E. Edit
+Q. Quit
 
 Enter a desired option: `);
 
 		exit = exit.toLowerCase();
 
-		if (exit == "e") {
+		if (exit == "q") {
 			rl.close();
 		}
 
@@ -186,8 +193,48 @@ Enter a desired option: `);
 			return
 		}
 
+		// Acá llamar a la función de eliminar
+		switch(exit){
+			case "d": chooseVehicle(filteredVehicles)//Call Delete Function with the parameter "filteredVehicles"
+			break;
+
+			case "e": //Call Edit Function
+			break;
+		}
+
 		console.log(`The option entered is not valid.`);
 	}
+}
+
+async function chooseVehicle(arrayOfVehicles = []){
+	// Get the id of Vehicle
+	let vehicleChosen
+
+	do {
+	
+	vehicleChosen = await rl.question(`What's the vehicule?`)
+	vehicleChosen = parseInt(vehicleChosen)
+
+	} while ( vehicleChosen > arrayOfVehicles.length() )
+	
+	vehicleChosen -= 1
+
+	deleteVehicle(arrayOfVehicles[vehicleChosen]?.id)
+
+}
+
+function deleteVehicle(id){
+	// Search for the vechicle in Vechiles and remove it
+	
+	
+	vehicles = vehicles.filter(
+		(vehicle) => vehicle.id !== id
+	)
+	
+	// Inverse of Parse
+	
+
+	// Persist the changes in the File System
 }
 
 async function main() {
