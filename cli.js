@@ -185,16 +185,13 @@ Enter a desired option: `);
 
 		exit = exit.toLowerCase();
 
-		if (exit == "q") {
-			rl.close();
-		}
-
-		if (exit == "0") {
-			return
-		}
-
-		// Acá llamar a la función de eliminar
 		switch(exit){
+			case "q": rl.close();
+			break;
+
+			case"0": return
+			break;
+			
 			case "d": chooseVehicle(filteredVehicles)//Call Delete Function with the parameter "filteredVehicles"
 			break;
 
@@ -232,7 +229,7 @@ function deleteVehicle(id){
 	)
 	
 	// Inverse of Parse
-	
+	console.log(vehicles)
 
 	// Persist the changes in the File System
 }
