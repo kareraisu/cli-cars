@@ -10,7 +10,7 @@ const rl = readline.createInterface({
 rl.on("close", () => process.exit(0));
 
 const URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRXhp9bt3GgfL0ZwpC05_DOH2eIAK4ojTTXKdg_tdl9Gg07TFZnbKI8lsNtLJ14EaI218cyu23f25LE/pub?gid=0&single=true&output=csv";
-const vehicles = [];
+let vehicles = [];
 let options = {};
 let tableHeaders = [];
 let menuLevel = 0;
@@ -212,9 +212,10 @@ async function chooseVehicle(arrayOfVehicles = []){
 	vehicleChosen = await rl.question(`What's the vehicule?`)
 	vehicleChosen = parseInt(vehicleChosen)
 
-	} while ( vehicleChosen > arrayOfVehicles.length() )
+	} while ( vehicleChosen > arrayOfVehicles.length );
 	
 	vehicleChosen -= 1
+	console.log("El vehiculo seleccionado es:", arrayOfVehicles[vehicleChosen])
 
 	deleteVehicle(arrayOfVehicles[vehicleChosen]?.id)
 
@@ -222,8 +223,8 @@ async function chooseVehicle(arrayOfVehicles = []){
 
 function deleteVehicle(id){
 	// Search for the vechicle in Vechiles and remove it
-	
-	
+
+
 	vehicles = vehicles.filter(
 		(vehicle) => vehicle.id !== id
 	)
@@ -231,7 +232,35 @@ function deleteVehicle(id){
 	// Inverse of Parse
 	console.log(vehicles)
 
+	let csvLines = vehicles.map(function(vehicle){
+
+		let cvsLine = []
+	  
+		for (let header of tableHeaders){
+		  cvsLine.push(vehicle[header]) 
+		}
+		
+		cvsLine = cvsLine.join()
+		
+		console.log("Mis lienas CVS", cvsLine)
+	  
+		return cvsLine
+	  })
+
+	  csvLines.unshift(tableHeaders.join())
+
+	  csvLines = csvLines.join("\n")
+
+	  console.log("mis Mapeos", csvLines)
+
+
 	// Persist the changes in the File System
+	fs.writeFile(filePath, csvLines, err => {
+		if (err) {
+		  console.error("Error updating CSV file on disk",err);
+		}
+		// file written successfully
+	  });
 }
 
 async function main() {
