@@ -177,6 +177,7 @@ async function listFilteredVehicles(property, selectedOption) {
 		exit = await rl.question(`
 What would you like to do?
 0. Go Back
+A. Add
 D. Delete
 E. Edit
 Q. Quit
@@ -191,6 +192,9 @@ Enter a desired option: `);
 
 			case"0": return
 			break;
+			
+			case"a": addNewVheicle()// Call to the Add a new vehicle function
+			break
 			
 			case "d": chooseVehicle(filteredVehicles)//Call Delete Function with the parameter "filteredVehicles"
 			break;
@@ -261,6 +265,35 @@ function deleteVehicle(id){
 		}
 		// file written successfully
 	  });
+}
+
+// Function that add a new Vehcile
+async function addNewVheicle(){
+	// Get the user input according to the Tableheaders (marca, modelo, año ,motor, tipo ,proposito)
+	console.log("Then the system will request the characteristics of the new vehicle")
+
+	let caracteristic
+	let csvLine = []
+
+	for (let header of tableHeaders){
+		caracteristic = await rl.question('Please, enter the following caracteristic: '+header)
+		csvLine.push(caracteristic) 
+	}
+
+	
+	console.log(csvLine)
+	csvLine = csvLine.join("\n")
+
+	// Persist the changes in the File System
+	fs.writeFile(filePath, csvLine, err => {
+		if (err) {
+		  console.error("Error updating CSV file on disk",err);
+		}
+		// file written successfully
+		console.log("The vehicle was successfully added")
+	  });
+
+	
 }
 
 async function main() {
