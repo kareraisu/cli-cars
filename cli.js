@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 import * as readline from "node:readline/promises";
-import fs from 'fs'
+import fs from "fs";
 
 const rl = readline.createInterface({
 	input: process.stdin,
@@ -9,31 +9,48 @@ const rl = readline.createInterface({
 //when done reading rl, exit program
 rl.on("close", () => process.exit(0));
 
-const URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRXhp9bt3GgfL0ZwpC05_DOH2eIAK4ojTTXKdg_tdl9Gg07TFZnbKI8lsNtLJ14EaI218cyu23f25LE/pub?gid=0&single=true&output=csv";
+const URL =
+	"https://docs.google.com/spreadsheets/d/e/2PACX-1vRXhp9bt3GgfL0ZwpC05_DOH2eIAK4ojTTXKdg_tdl9Gg07TFZnbKI8lsNtLJ14EaI218cyu23f25LE/pub?gid=0&single=true&output=csv";
 let vehicles = [];
 let options = {};
 let tableHeaders = [];
 let menuLevel = 0;
+const LINE_SEPARATOR = "\n"
+const ACTION_LIST = "a q"
 
-const filePath = '/Users/bts-041/Documents/JavaScript/vehicles.csv'
+const filePath = "/Users/bts-041/Documents/JavaScript/vehicles.csv";
 
-function readFilePromise(filePath) {
-	
-	return new Promise(function(resolve, reject) {
+async function readFilePromise(filePath) {
+	return new Promise(function (resolve, reject) {
 		// executor (the producing code, "singer")
-		fs.readFile(filePath, 'utf8', (err,data) => {
+		fs.readFile(filePath, "utf8", (err, data) => {
 			if (err) {
-			 reject(err)
+				reject(err);
 			}
-			resolve(data) 
+			resolve(data);
 		});
 	});
-
 }
 
-function parseCSV(data) {
+
+async function writeFilePromise(filePath, content){
 	
-	let rows = data.split("\r\n");
+	return new Promise(function(resolve, reject){
+		
+		fs.writeFile(filePath, content, (err) => {
+			if (err) {
+				reject(err)
+			}
+			resolve()
+		});
+
+	})
+}
+
+
+
+function parseCSV(data) {
+	let rows = data.split(LINE_SEPARATOR);
 	tableHeaders = rows
 		.shift()
 		.split(",")
@@ -43,7 +60,7 @@ function parseCSV(data) {
 		options[header] = [];
 	}
 
-	let indexId = 0
+	let indexId = 0;
 	for (let row of rows) {
 		const values = row.split(",");
 
@@ -53,19 +70,19 @@ function parseCSV(data) {
 		]);
 
 		const vehicle = Object.fromEntries(entries);
-		vehicle.id = indexId 
-		
+		vehicle.id = indexId;
+
 		vehicles.push(vehicle);
-		
-		indexId += 1
+
+		indexId += 1;
 	}
 }
 
 // Read data from File System
-async function readData(){
-	const data = await readFilePromise(filePath)
-	
-	parseCSV(data)
+async function readData() {
+	const data = await readFilePromise(filePath);
+
+	parseCSV(data);
 }
 
 async function fetchData() {
@@ -74,8 +91,7 @@ async function fetchData() {
 	if (response.ok) {
 		const data = await response.text();
 
-		parseCSV(data)
-
+		parseCSV(data);
 	} else {
 		console.error("Failed to fetch data: " + response.status);
 		rl.close();
@@ -102,6 +118,7 @@ async function printAndGetInput(options, isInMainMenu) {
 
 	if (isInMainMenu) {
 		console.log("Q. (Quit)");
+		console.log("A. (Add)")
 	} else {
 		console.log("0. (Go back)");
 	}
@@ -113,8 +130,13 @@ async function printAndGetInput(options, isInMainMenu) {
 
 	console.log();
 	selectedOption = await rl.question(`Enter a desired option: `);
+	selectedOption = selectedOption.toLowerCase()
 
 	// If the user input is not a number this will give a NaN
+	if (ACTION_LIST.includes(selectedOption)){
+		return selectedOption
+	}
+
 	selectedOption = parseInt(selectedOption);
 
 	if (selectedOption == 0) {
@@ -125,9 +147,7 @@ async function printAndGetInput(options, isInMainMenu) {
 			menuLevel = 0;
 			return selectedOption;
 		}
-		
-	}	
-
+	}
 
 	if (selectedOption <= options.length) {
 		// Increment Menu counter
@@ -158,7 +178,7 @@ async function listFilteredVehicles(property, selectedOption) {
 	console.log();
 	console.log("The vehicles are:");
 	console.log();
-	
+
 	let optionIndex = 1;
 	for (let vehicle of filteredVehicles) {
 		console.log(
@@ -168,7 +188,6 @@ async function listFilteredVehicles(property, selectedOption) {
 			vehicle[tableHeaders[2]]
 		);
 		optionIndex++;
-		
 	}
 
 	let exit;
@@ -177,7 +196,6 @@ async function listFilteredVehicles(property, selectedOption) {
 		exit = await rl.question(`
 What would you like to do?
 0. Go Back
-A. Add
 D. Delete
 E. Edit
 Q. Quit
@@ -186,127 +204,110 @@ Enter a desired option: `);
 
 		exit = exit.toLowerCase();
 
-		switch(exit){
-			case "q": rl.close();
-			break;
+		switch (exit) {
+			case "q":
+				rl.close();
+				break;
 
-			case"0": return
-			break;
-			
-			case"a": addNewVheicle()// Call to the Add a new vehicle function
-			break
-			
-			case "d": chooseVehicle(filteredVehicles)//Call Delete Function with the parameter "filteredVehicles"
-			break;
+			case "0":
+				return;
+				break;
+
+			case "a":
+				addNewVheicle(); // Call to the Add a new vehicle function
+				break;
+
+			case "d":
+				chooseVehicle(filteredVehicles); //Call Delete Function with the parameter "filteredVehicles"
+				break;
 
 			case "e": //Call Edit Function
-			break;
+				break;
 		}
 
 		console.log(`The option entered is not valid.`);
 	}
 }
 
-async function chooseVehicle(arrayOfVehicles = []){
+async function chooseVehicle(arrayOfVehicles = []) {
 	// Get the id of Vehicle
-	let vehicleChosen
+	let vehicleChosen;
 
 	do {
-	
-	vehicleChosen = await rl.question(`What's the vehicule?`)
-	vehicleChosen = parseInt(vehicleChosen)
+		vehicleChosen = await rl.question(`What's the vehicule?`);
+		vehicleChosen = parseInt(vehicleChosen);
+	} while (vehicleChosen > arrayOfVehicles.length);
 
-	} while ( vehicleChosen > arrayOfVehicles.length );
-	
-	vehicleChosen -= 1
-	console.log("El vehiculo seleccionado es:", arrayOfVehicles[vehicleChosen])
+	vehicleChosen -= 1;
+	console.log("El vehiculo seleccionado es:", arrayOfVehicles[vehicleChosen]);
 
-	deleteVehicle(arrayOfVehicles[vehicleChosen]?.id)
-
+	deleteVehicle(arrayOfVehicles[vehicleChosen]?.id);
 }
 
-function deleteVehicle(id){
+function deleteVehicle(id) {
 	// Search for the vechicle in Vechiles and remove it
 
+	vehicles = vehicles.filter((vehicle) => vehicle.id !== id);
 
-	vehicles = vehicles.filter(
-		(vehicle) => vehicle.id !== id
-	)
-	
-	// Inverse of Parse
-	console.log(vehicles)
-
-	let csvLines = vehicles.map(function(vehicle){
-
-		let cvsLine = []
-	  
-		for (let header of tableHeaders){
-		  cvsLine.push(vehicle[header]) 
-		}
-		
-		cvsLine = cvsLine.join()
-		
-		console.log("Mis lienas CVS", cvsLine)
-	  
-		return cvsLine
-	  })
-
-	  csvLines.unshift(tableHeaders.join())
-
-	  csvLines = csvLines.join("\n")
-
-	  console.log("mis Mapeos", csvLines)
-
-
-	// Persist the changes in the File System
-	fs.writeFile(filePath, csvLines, err => {
-		if (err) {
-		  console.error("Error updating CSV file on disk",err);
-		}
-		// file written successfully
-	  });
+	persistCSV()
 }
 
 // Function that add a new Vehcile
-async function addNewVheicle(){
+async function addNewVheicle() {
 	// Get the user input according to the Tableheaders (marca, modelo, año ,motor, tipo ,proposito)
-	console.log("Then the system will request the characteristics of the new vehicle")
+	console.log(
+		"Then the system will request the characteristics of the new vehicle"
+	);
 
-	let caracteristic
-	let csvLine = []
+	let value;
+	let newVehicle = {};
 
-	for (let header of tableHeaders){
-		caracteristic = await rl.question('Please, enter the following caracteristic: '+header)
-		csvLine.push(caracteristic) 
+	for (let key of tableHeaders) {
+		value = await rl.question(
+			"Please, enter the following caracteristic: " + key
+		);
+		newVehicle[key] = value
 	}
 
-	
-	console.log(csvLine)
-	csvLine = csvLine.join("\n")
+	vehicles.push(newVehicle)
+
+	await persistCSV()
 
 	// Persist the changes in the File System
-	fs.writeFile(filePath, csvLine, err => {
-		if (err) {
-		  console.error("Error updating CSV file on disk",err);
-		}
-		// file written successfully
-		console.log("The vehicle was successfully added")
-	  });
-
-	
 }
 
+async function persistCSV() {
+	let csvLines = vehicles.map(function (vehicle) {
+		let cvsLine = [];
+
+		for (let header of tableHeaders) {
+			cvsLine.push(vehicle[header]);
+		}
+
+		cvsLine = cvsLine.join();
+
+		return cvsLine;
+	});
+
+	csvLines.unshift(tableHeaders.join());
+
+	csvLines = csvLines.join(LINE_SEPARATOR);
+
+	// Persist the changes in the File System
+	await writeFilePromise(filePath, csvLines)
+
+}
+
+	
 async function main() {
 	//await fetchData();
 
-	await readData()
+	await readData();
 
 	collectOptions();
 
 	console.log();
-	console.log(
-		"Hello! Welcome to Ed's Car Catalog. Please select a filter:"
-	);
+	console.log("Hello! Welcome to Ed's Car Catalog. Please select a filter:");
 
 	let property;
 
@@ -315,8 +316,21 @@ async function main() {
 		if (menuLevel == 0) {
 			// Show headers
 			const userInput = await printAndGetInput(tableHeaders, true);
-			property = tableHeaders[userInput - 1];
-			console.log("These are the options for:", property);
+			
+			switch (userInput){
+				case "a":
+					await addNewVheicle()
+				break;
+				
+				case "q":
+					rl.close()
+				break;
+
+				default:
+					property = tableHeaders[userInput - 1];
+					console.log("These are the options for:", property);
+			}
+			
 		}
 
 		let selectedOption = await printAndGetInput(options[property]);
@@ -326,7 +340,7 @@ async function main() {
 
 		await listFilteredVehicles(property, value);
 	}
-};
+}
 
 // Execute the main function
-main()
+main();
