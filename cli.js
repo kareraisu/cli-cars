@@ -1,11 +1,13 @@
 #!/usr/bin/env node
-import * as readline from "node:readline/promises";
+import * as readlineCallBack from "node:readline";
 import fs from "fs";
 
-const rl = readline.createInterface({
+const rl = readlineCallBack.createInterface({
 	input: process.stdin,
 	output: process.stdout,
 });
+
+
 //when done reading rl, exit program
 rl.on("close", () => process.exit(0));
 
@@ -15,8 +17,8 @@ let vehicles = [];
 let options = {};
 let tableHeaders = [];
 let menuLevel = 0;
-const LINE_SEPARATOR = "\n"
-const ACTION_LIST = "a q"
+const LINE_SEPARATOR = "\n";
+const ACTION_LIST = "a q";
 
 const filePath = "/Users/bts-041/Documents/JavaScript/vehicles.csv";
 
@@ -32,22 +34,31 @@ async function readFilePromise(filePath) {
 	});
 }
 
-
-async function writeFilePromise(filePath, content){
-	
-	return new Promise(function(resolve, reject){
-		
+async function writeFilePromise(filePath, content) {
+	return new Promise(function (resolve, reject) {
 		fs.writeFile(filePath, content, (err) => {
 			if (err) {
-				reject(err)
+				reject(err);
 			}
-			resolve()
+			resolve();
 		});
-
-	})
+	});
 }
 
+async function question(question, defaultAnswer) {
+	return new Promise(function (resolve) {
+		
+		// This callBack is going to be called when the user press the Enter key
+		rl.question(question, function(answer) {
+			resolve(answer)
+		});
+		
+		if (defaultAnswer){
+			rl.write(defaultAnswer);
+		}
 
+	});
+}
 
 function parseCSV(data) {
 	let rows = data.split(LINE_SEPARATOR);
@@ -118,7 +129,7 @@ async function printAndGetInput(options, isInMainMenu) {
 
 	if (isInMainMenu) {
 		console.log("Q. (Quit)");
-		console.log("A. (Add)")
+		console.log("A. (Add)");
 	} else {
 		console.log("0. (Go back)");
 	}
@@ -129,12 +140,12 @@ async function printAndGetInput(options, isInMainMenu) {
 	}
 
 	console.log();
-	selectedOption = await rl.question(`Enter a desired option: `);
-	selectedOption = selectedOption.toLowerCase()
+	selectedOption = await question(`Enter a desired option: `);
+	selectedOption = selectedOption.toLowerCase();
 
 	// If the user input is not a number this will give a NaN
-	if (ACTION_LIST.includes(selectedOption)){
-		return selectedOption
+	if (ACTION_LIST.includes(selectedOption)) {
+		return selectedOption;
 	}
 
 	selectedOption = parseInt(selectedOption);
@@ -193,7 +204,7 @@ async function listFilteredVehicles(property, selectedOption) {
 	let exit;
 
 	while (true) {
-		exit = await rl.question(`
+		exit = await question(`
 What would you like to do?
 0. Go Back
 D. Delete
@@ -211,7 +222,6 @@ Enter a desired option: `);
 
 			case "0":
 				return;
-				break;
 
 			case "a":
 				addNewVheicle(); // Call to the Add a new vehicle function
@@ -221,7 +231,8 @@ Enter a desired option: `);
 				chooseVehicle(filteredVehicles); //Call Delete Function with the parameter "filteredVehicles"
 				break;
 
-			case "e": //Call Edit Function
+			case "e":
+				chooseVehicle(vehicles, false); //Call Edit Function
 				break;
 		}
 
@@ -229,19 +240,23 @@ Enter a desired option: `);
 	}
 }
 
-async function chooseVehicle(arrayOfVehicles = []) {
+async function chooseVehicle(arrayOfVehicles = [], flagDelete) {
 	// Get the id of Vehicle
 	let vehicleChosen;
 
 	do {
-		vehicleChosen = await rl.question(`What's the vehicule?`);
+		vehicleChosen = await question(`What's the vehicule?`);
 		vehicleChosen = parseInt(vehicleChosen);
 	} while (vehicleChosen > arrayOfVehicles.length);
 
 	vehicleChosen -= 1;
-	console.log("El vehiculo seleccionado es:", arrayOfVehicles[vehicleChosen]);
+	console.log("The selected vehicle is:", arrayOfVehicles[vehicleChosen]);
 
-	deleteVehicle(arrayOfVehicles[vehicleChosen]?.id);
+	if (flagDelete == true) {
+		deleteVehicle(arrayOfVehicles[vehicleChosen]?.id);
+	} else {
+		editVehicle(vehicles[vehicleChosen]?.id);
+	}
 }
 
 function deleteVehicle(id) {
@@ -249,8 +264,20 @@ function deleteVehicle(id) {
 
 	vehicles = vehicles.filter((vehicle) => vehicle.id !== id);
 
-	persistCSV()
+	persistCSV();
 }
+
+async function mutateVehicle (car={}){
+	
+	for (let key of tableHeaders) {
+		
+		const answer = await question(`Please provide a value for ${key}:`, car[key])
+		car[key] = answer
+		
+	}	
+	return car
+}
+
 
 // Function that add a new Vehcile
 async function addNewVheicle() {
@@ -259,21 +286,33 @@ async function addNewVheicle() {
 		"Then the system will request the characteristics of the new vehicle"
 	);
 
-	let value;
-	let newVehicle = {};
+	
+	// call function
+	const newVehicle = mutateVehicle()
 
-	for (let key of tableHeaders) {
-		value = await rl.question(
-			"Please, enter the following caracteristic: " + key
-		);
-		newVehicle[key] = value
-	}
+	vehicles.push(newVehicle);
 
-	vehicles.push(newVehicle)
-
-	await persistCSV()
+	await persistCSV();
 
 	// Persist the changes in the File System
+}
+
+async function editVehicle(id) {
+	// List the vehicle with the caracteristics and ask if the user wants to edit it.
+	console.log(
+		"Then the system will request the characteristics to edit or press enter to leave the original value"
+	);
+	let car = vehicles.find((vehicle) => vehicle?.id == id);
+
+	if (!car){
+		console.log("Error, the vhicle doesn't exist")
+		return
+	}
+
+	await mutateVehicle(car)
+
+	// call to the persistCSV()
+	persistCSV()
 }
 
 async function persistCSV() {
@@ -294,11 +333,9 @@ async function persistCSV() {
 	csvLines = csvLines.join(LINE_SEPARATOR);
 
 	// Persist the changes in the File System
-	await writeFilePromise(filePath, csvLines)
-
+	await writeFilePromise(filePath, csvLines);
 }
 
-	
 async function main() {
 	//await fetchData();
 
@@ -316,21 +353,20 @@ async function main() {
 		if (menuLevel == 0) {
 			// Show headers
 			const userInput = await printAndGetInput(tableHeaders, true);
-			
-			switch (userInput){
+
+			switch (userInput) {
 				case "a":
-					await addNewVheicle()
-				break;
-				
+					await addNewVheicle();
+					break;
+
 				case "q":
-					rl.close()
-				break;
+					rl.close();
+					break;
 
 				default:
 					property = tableHeaders[userInput - 1];
 					console.log("These are the options for:", property);
 			}
-			
 		}
 
 		let selectedOption = await printAndGetInput(options[property]);
