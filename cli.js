@@ -120,12 +120,15 @@ function collectOptions() {
 	}
 }
 
-async function printAndGetInput(options, isInMainMenu) {
+async function printAndGetInput(options) {
 	let index = 0;
+
+	const isInMainMenu = menuLevel == 0
 
 	let selectedOption;
 
 	console.log();
+	console.log("Please select a filter")
 
 	if (isInMainMenu) {
 		console.log("Q. (Quit)");
@@ -134,6 +137,7 @@ async function printAndGetInput(options, isInMainMenu) {
 		console.log("0. (Go back)");
 	}
 
+	// List the options
 	for (let option of options) {
 		console.log(`${index + 1}` + ". " + option);
 		index++;
@@ -186,10 +190,6 @@ async function listFilteredVehicles(property, selectedOption) {
 		(vehicle) => vehicle[property] == selectedOption
 	);
 
-	console.log();
-	console.log("The vehicles are:");
-	console.log();
-
 	let optionIndex = 1;
 	for (let vehicle of filteredVehicles) {
 		console.log(
@@ -201,10 +201,32 @@ async function listFilteredVehicles(property, selectedOption) {
 		optionIndex++;
 	}
 
-	let exit;
+	await chooseVehicle(filteredVehicles)
 
-	while (true) {
-		exit = await question(`
+}
+
+async function chooseVehicle(arrayOfVehicles = []) {
+	// Get the id of Vehicle
+	let chosenVehicleId;
+
+	do {
+		chosenVehicleId = await question(`Select a vehicle`);
+		chosenVehicleId = parseInt(chosenVehicleId);
+	} while (chosenVehicleId > arrayOfVehicles.length);
+
+	chosenVehicleId -= 1;
+	console.log("The selected vehicle is:", arrayOfVehicles[chosenVehicleId]);
+
+	await chooseAction(chosenVehicleId)
+
+}
+
+async function chooseAction(vehicleId){
+	let action;
+	let isValidAction = false
+
+	while (!isValidAction) {
+		action = await question(`
 What would you like to do?
 0. Go Back
 D. Delete
@@ -213,49 +235,32 @@ Q. Quit
 
 Enter a desired option: `);
 
-		exit = exit.toLowerCase();
+		action = action.toLowerCase();
 
-		switch (exit) {
+		switch (action) {
 			case "q":
 				rl.close();
+				isValidAction = true
 				break;
 
 			case "0":
 				return;
 
-			case "a":
-				addNewVheicle(); // Call to the Add a new vehicle function
-				break;
-
 			case "d":
-				chooseVehicle(filteredVehicles); //Call Delete Function with the parameter "filteredVehicles"
+				deleteVehicle(vehicleId);
+				isValidAction = true
 				break;
 
 			case "e":
-				chooseVehicle(vehicles, false); //Call Edit Function
+				await editVehicle(vehicleId);
+				isValidAction = true
 				break;
+
+			default:
+				console.log(`The option entered is not valid.`);
+				
 		}
 
-		console.log(`The option entered is not valid.`);
-	}
-}
-
-async function chooseVehicle(arrayOfVehicles = [], flagDelete) {
-	// Get the id of Vehicle
-	let vehicleChosen;
-
-	do {
-		vehicleChosen = await question(`What's the vehicule?`);
-		vehicleChosen = parseInt(vehicleChosen);
-	} while (vehicleChosen > arrayOfVehicles.length);
-
-	vehicleChosen -= 1;
-	console.log("The selected vehicle is:", arrayOfVehicles[vehicleChosen]);
-
-	if (flagDelete == true) {
-		deleteVehicle(arrayOfVehicles[vehicleChosen]?.id);
-	} else {
-		editVehicle(vehicles[vehicleChosen]?.id);
 	}
 }
 
@@ -264,37 +269,12 @@ function deleteVehicle(id) {
 
 	vehicles = vehicles.filter((vehicle) => vehicle.id !== id);
 
-	persistCSV();
-}
+	 persistCSV();
 
-async function mutateVehicle (car={}){
-	
-	for (let key of tableHeaders) {
-		
-		const answer = await question(`Please provide a value for ${key}:`, car[key])
-		car[key] = answer
-		
-	}	
-	return car
-}
+	 console.log("Vehicle deleted")
 
-
-// Function that add a new Vehcile
-async function addNewVheicle() {
-	// Get the user input according to the Tableheaders (marca, modelo, año ,motor, tipo ,proposito)
-	console.log(
-		"Then the system will request the characteristics of the new vehicle"
-	);
-
-	
-	// call function
-	const newVehicle = mutateVehicle()
-
-	vehicles.push(newVehicle);
-
-	await persistCSV();
-
-	// Persist the changes in the File System
+	 // This will get us back to the Main menu
+	 menuLevel = 0
 }
 
 async function editVehicle(id) {
@@ -313,6 +293,39 @@ async function editVehicle(id) {
 
 	// call to the persistCSV()
 	persistCSV()
+
+	console.log("Vehicle updated")
+	
+	// This will get us back to the Main menu
+	menuLevel = 0
+}
+
+async function mutateVehicle (car={}){
+	
+	for (let key of tableHeaders) {
+		
+		const answer = await question(`Please provide a value for ${key}:`, car[key])
+		car[key] = answer
+		
+	}	
+	return car
+}
+
+async function addNewVheicle() {
+	// Get the user input according to the Tableheaders (marca, modelo, año ,motor, tipo ,proposito)
+	console.log(
+		"Then the system will request the characteristics of the new vehicle"
+	);
+
+	
+	// call function
+	const newVehicle = mutateVehicle()
+
+	vehicles.push(newVehicle);
+
+	await persistCSV();
+
+	// Persist the changes in the File System
 }
 
 async function persistCSV() {
@@ -344,7 +357,7 @@ async function main() {
 	collectOptions();
 
 	console.log();
-	console.log("Hello! Welcome to Ed's Car Catalog. Please select a filter:");
+	console.log("Hello! Welcome to Ed's Car Catalog.");
 
 	let property;
 
@@ -352,7 +365,7 @@ async function main() {
 	while (true) {
 		if (menuLevel == 0) {
 			// Show headers
-			const userInput = await printAndGetInput(tableHeaders, true);
+			const userInput = await printAndGetInput(tableHeaders);
 
 			switch (userInput) {
 				case "a":
@@ -375,6 +388,8 @@ async function main() {
 		const value = options[property][selectedOption];
 
 		await listFilteredVehicles(property, value);
+		
+
 	}
 }
 
