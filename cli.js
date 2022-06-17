@@ -1,6 +1,9 @@
 #!/usr/bin/env node
 import * as readlineCallBack from "node:readline";
-import fs from "fs";
+import {addVehicle, editVehicle, deleteVehicle, getVehicles} from "./api"
+import {findVehicle, readData} from "./util"
+import ENV from "./config"
+
 
 const rl = readlineCallBack.createInterface({
 	input: process.stdin,
@@ -11,39 +14,12 @@ const rl = readlineCallBack.createInterface({
 //when done reading rl, exit program
 rl.on("close", () => process.exit(0));
 
-const URL =
-	"https://docs.google.com/spreadsheets/d/e/2PACX-1vRXhp9bt3GgfL0ZwpC05_DOH2eIAK4ojTTXKdg_tdl9Gg07TFZnbKI8lsNtLJ14EaI218cyu23f25LE/pub?gid=0&single=true&output=csv";
+
 let vehicles = [];
 let options = {};
 let tableHeaders = [];
 let menuLevel = 0;
-const LINE_SEPARATOR = "\n";
-const ACTION_LIST = "a q";
 
-const filePath = "/Users/bts-041/Documents/JavaScript/vehicles.csv";
-
-async function readFilePromise(filePath) {
-	return new Promise(function (resolve, reject) {
-		// executor (the producing code, "singer")
-		fs.readFile(filePath, "utf8", (err, data) => {
-			if (err) {
-				reject(err);
-			}
-			resolve(data);
-		});
-	});
-}
-
-async function writeFilePromise(filePath, content) {
-	return new Promise(function (resolve, reject) {
-		fs.writeFile(filePath, content, (err) => {
-			if (err) {
-				reject(err);
-			}
-			resolve();
-		});
-	});
-}
 
 async function question(question, defaultAnswer) {
 	return new Promise(function (resolve) {
@@ -60,8 +36,8 @@ async function question(question, defaultAnswer) {
 	});
 }
 
-function parseCSV(data) {
-	let rows = data.split(LINE_SEPARATOR);
+export function parseCSV(data) {
+	let rows = data.split(ENV.LINE_SEPARATOR);
 	tableHeaders = rows
 		.shift()
 		.split(",")
@@ -89,24 +65,25 @@ function parseCSV(data) {
 	}
 }
 
-// Read data from File System
-async function readData() {
-	const data = await readFilePromise(filePath);
+export async function persistCSV() {
+	let csvLines = vehicles.map(function (vehicle) {
+		let cvsLine = [];
 
-	parseCSV(data);
-}
+		for (let header of tableHeaders) {
+			cvsLine.push(vehicle[header]);
+		}
 
-async function fetchData() {
-	const response = await fetch(URL);
-	// If the HTTP-status is 200-299, then get the body
-	if (response.ok) {
-		const data = await response.text();
+		cvsLine = cvsLine.join();
 
-		parseCSV(data);
-	} else {
-		console.error("Failed to fetch data: " + response.status);
-		rl.close();
-	}
+		return cvsLine;
+	});
+
+	csvLines.unshift(tableHeaders.join());
+
+	csvLines = csvLines.join(ENV.LINE_SEPARATOR);
+
+	// Persist the changes in the File System
+	await writeFilePromise(ENV.FILE_PATH, csvLines);
 }
 
 // This collects the options from the Vehicles into a global dictionary of lists
@@ -186,9 +163,7 @@ async function listFilteredVehicles(property, selectedOption) {
 		return;
 	}
 
-	const filteredVehicles = vehicles.filter(
-		(vehicle) => vehicle[property] == selectedOption
-	);
+	const filteredVehicles = getVehicles(property, selectedOption)
 
 	let optionIndex = 1;
 	for (let vehicle of filteredVehicles) {
@@ -208,13 +183,17 @@ async function listFilteredVehicles(property, selectedOption) {
 async function chooseVehicle(arrayOfVehicles = []) {
 	// Get the id of Vehicle
 	let chosenVehicleId;
+	let isNumber
 
 	do {
 		chosenVehicleId = await question(`Select a vehicle`);
 		chosenVehicleId = parseInt(chosenVehicleId);
-	} while (chosenVehicleId > arrayOfVehicles.length);
+		
+	} while (chosenVehicleId > arrayOfVehicles.length );
 
+	//chosenVehicleId > arrayOfVehicles.length
 	chosenVehicleId -= 1;
+
 	console.log("The selected vehicle is:", arrayOfVehicles[chosenVehicleId]);
 
 	await chooseAction(chosenVehicleId)
@@ -248,11 +227,16 @@ Enter a desired option: `);
 
 			case "d":
 				deleteVehicle(vehicleId);
+				// This will get us back to the Main menu
+				menuLevel = 0
 				isValidAction = true
 				break;
 
 			case "e":
-				await editVehicle(vehicleId);
+				const updatedVehicle = await mutateVehicle(vehicleId)
+				await editVehicle(vehicleId, updatedVehicle);
+				// This will get us back to the Main menu
+				menuLevel = 0
 				isValidAction = true
 				break;
 
@@ -264,43 +248,20 @@ Enter a desired option: `);
 	}
 }
 
-function deleteVehicle(id) {
-	// Search for the vechicle in Vechiles and remove it
-
-	vehicles = vehicles.filter((vehicle) => vehicle.id !== id);
-
-	 persistCSV();
-
-	 console.log("Vehicle deleted")
-
-	 // This will get us back to the Main menu
-	 menuLevel = 0
-}
-
-async function editVehicle(id) {
-	// List the vehicle with the caracteristics and ask if the user wants to edit it.
+async function mutateVehicle (carId){
+	// Get the user input according to the Tableheaders (marca, modelo, año ,motor, tipo ,proposito)
 	console.log(
-		"Then the system will request the characteristics to edit or press enter to leave the original value"
+		"Then the system will request the characteristics of the vehicle"
 	);
-	let car = vehicles.find((vehicle) => vehicle?.id == id);
 
-	if (!car){
-		console.log("Error, the vhicle doesn't exist")
+	let car
+
+	try{
+		car = carId ? findVehicle(carId) : {}
+	}
+	catch(error){
 		return
 	}
-
-	await mutateVehicle(car)
-
-	// call to the persistCSV()
-	persistCSV()
-
-	console.log("Vehicle updated")
-	
-	// This will get us back to the Main menu
-	menuLevel = 0
-}
-
-async function mutateVehicle (car={}){
 	
 	for (let key of tableHeaders) {
 		
@@ -309,44 +270,6 @@ async function mutateVehicle (car={}){
 		
 	}	
 	return car
-}
-
-async function addNewVheicle() {
-	// Get the user input according to the Tableheaders (marca, modelo, año ,motor, tipo ,proposito)
-	console.log(
-		"Then the system will request the characteristics of the new vehicle"
-	);
-
-	
-	// call function
-	const newVehicle = mutateVehicle()
-
-	vehicles.push(newVehicle);
-
-	await persistCSV();
-
-	// Persist the changes in the File System
-}
-
-async function persistCSV() {
-	let csvLines = vehicles.map(function (vehicle) {
-		let cvsLine = [];
-
-		for (let header of tableHeaders) {
-			cvsLine.push(vehicle[header]);
-		}
-
-		cvsLine = cvsLine.join();
-
-		return cvsLine;
-	});
-
-	csvLines.unshift(tableHeaders.join());
-
-	csvLines = csvLines.join(LINE_SEPARATOR);
-
-	// Persist the changes in the File System
-	await writeFilePromise(filePath, csvLines);
 }
 
 async function main() {
@@ -369,7 +292,8 @@ async function main() {
 
 			switch (userInput) {
 				case "a":
-					await addNewVheicle();
+					const newVehicle = await mutateVehicle()
+					await addVehicle(newVehicle);
 					break;
 
 				case "q":
