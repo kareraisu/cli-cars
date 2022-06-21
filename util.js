@@ -1,16 +1,7 @@
-import {parseCSV} from "./cli"
-import ENV from "./config"
+import ENV from "./config.js";
 import fs from "fs";
 
-export function findVehicle(id){
-	let car = vehicles.find((vehicle) => vehicle?.id == id);
 
-	if (!car){
-		console.error("Error, the vhicle doesn't exist")
-		throw new Error("Error, the vhicle doesn't exist")
-	}
-	return car
-}
 
 export async function readFilePromise(filePath) {
 	return new Promise(function (resolve, reject) {
@@ -39,7 +30,9 @@ export async function writeFilePromise(filePath, content) {
 export async function readData() {
 	const data = await readFilePromise(ENV.FILE_PATH);
 
-	parseCSV(data);
+	const { tableHeaders, elements } = parseCSV(data);
+
+	return { tableHeaders, elements };
 }
 
 export async function fetchData() {
@@ -53,4 +46,56 @@ export async function fetchData() {
 		console.error("Failed to fetch data: " + response.status);
 		rl.close();
 	}
+}
+
+export function parseCSV(data) {
+	const elements = []
+
+	const rows = data.split(ENV.LINE_SEPARATOR);
+	const tableHeaders = rows
+		.shift()
+		.split(",")
+		.map((el) => el.toLowerCase());
+
+	let indexId = 0;
+	for (let row of rows) {
+		const values = row.split(",");
+
+		var entries = tableHeaders.map((element, indice) => [
+			element,
+			values[indice],
+		]);
+
+		const element = Object.fromEntries(entries);
+		element.id = indexId;
+
+		elements.push(element);
+
+		indexId += 1;
+	}
+
+	// By default is returning internally as dictionry {key: value}.
+	// Ex: { tableHeaders: tableHeaders, elements: elements };
+	return { tableHeaders, elements };
+}
+
+export async function persistCSV(headers, elements) {
+	let csvLines = elements.map(function (vehicle) {
+		let cvsLine = [];
+
+		for (let header of headers) {
+			cvsLine.push(vehicle[header]);
+		}
+
+		cvsLine = cvsLine.join();
+
+		return cvsLine;
+	});
+
+	csvLines.unshift(headers.join());
+
+	csvLines = csvLines.join(ENV.LINE_SEPARATOR);
+
+	// Persist the changes in the File System
+	await writeFilePromise(ENV.FILE_PATH, csvLines);
 }

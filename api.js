@@ -1,50 +1,67 @@
-import {persistCSV} from "./cli"
+import { persistCSV } from "./util.js";
 
-export async function addVehicle(newVehicle) {
-	vehicles.push(newVehicle);
+export default class vehicleCollection {
+	vehicles
+	headers
 
-	await persistCSV();
-}
+	constructor({vehicles, headers}){
+		this.vehicles = vehicles
 
-export async function editVehicle(id, updatedData) {
-	
-	let vehicle
-	
-	try{
-		vehicle = findVehicle(id)
-	}
-	catch(error){
-		return
+		this.headers = headers
 	}
 
-	if (updatedData === undefined){
-		console.error("There is not data to update")
+	async addVehicle(newVehicle) {
+		this.vehicles.push(newVehicle);
+		await persistCSV(this.headers, this.vehicles);
 	}
 
+	async editVehicle(id, updatedData) {
+		let vehicle;
+
+		try {
+			vehicle = this.findVehicle(id);
+		} catch (error) {
+			return;
+		}
+
+		if (updatedData === undefined) {
+			console.error("There is not data to update");
+		}
+
+		Object.assign(vehicle, updatedData);
+
+		//vehicle = {...vehicle, ...updatedData}
+
+		// call to the persistCSV()
+		persistCSV(this.headers, this.vehicles);
+
+		console.log("Vehicle updated");
+	}
+
+	deleteVehicle(id) {
+		// Search for the vechicle in Vechiles and remove it
+		this.vehicles = this.vehicles.filter((vehicle) => vehicle.id !== id);
+
+		persistCSV(this.headers, this.vehicles);
+
+		console.log("Vehicle deleted");
+	}
+
+	getVehicles(property, value) {
+		const filteredVehicles = this.vehicles.filter(
+			(vehicle) => vehicle[property] == value
+		);
+
+		return filteredVehicles;
+	}
+
+	findVehicle(id) {
+		let car = this.vehicles.find((vehicle) => vehicle?.id == id);
 	
-	Object.assign(vehicle, updatedData)
-
-	//vehicle = {...vehicle, ...updatedData}
-
-	// call to the persistCSV()
-	persistCSV()
-
-	console.log("Vehicle updated")
-}
-
-export function deleteVehicle(id) {
-	// Search for the vechicle in Vechiles and remove it
-	vehicles = vehicles.filter((vehicle) => vehicle.id !== id);
-
-	 persistCSV();
-
-	 console.log("Vehicle deleted")
-}
-
-export function getVehicles(property, value){
-	const filteredVehicles = vehicles.filter(
-		(vehicle) => vehicle[property] == value
-	);
-
-	return filteredVehicles
+		if (!car) {
+			console.error("Error, the vhicle doesn't exist");
+			throw new Error("Error, the vhicle doesn't exist");
+		}
+		return car;
+	}
 }

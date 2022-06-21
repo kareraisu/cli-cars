@@ -1,9 +1,8 @@
 #!/usr/bin/env node
 import * as readlineCallBack from "node:readline";
-import {addVehicle, editVehicle, deleteVehicle, getVehicles} from "./api"
-import {findVehicle, readData} from "./util"
-import ENV from "./config"
-
+import vehicleCollection from "./api.js"
+import {readData} from "./util.js"
+import ENV from "./config.js"
 
 const rl = readlineCallBack.createInterface({
 	input: process.stdin,
@@ -15,7 +14,7 @@ const rl = readlineCallBack.createInterface({
 rl.on("close", () => process.exit(0));
 
 
-let vehicles = [];
+let collection
 let options = {};
 let tableHeaders = [];
 let menuLevel = 0;
@@ -36,59 +35,10 @@ async function question(question, defaultAnswer) {
 	});
 }
 
-export function parseCSV(data) {
-	let rows = data.split(ENV.LINE_SEPARATOR);
-	tableHeaders = rows
-		.shift()
-		.split(",")
-		.map((el) => el.toLowerCase());
-
-	for (let header of tableHeaders) {
-		options[header] = [];
-	}
-
-	let indexId = 0;
-	for (let row of rows) {
-		const values = row.split(",");
-
-		var entries = tableHeaders.map((element, indice) => [
-			element,
-			values[indice],
-		]);
-
-		const vehicle = Object.fromEntries(entries);
-		vehicle.id = indexId;
-
-		vehicles.push(vehicle);
-
-		indexId += 1;
-	}
-}
-
-export async function persistCSV() {
-	let csvLines = vehicles.map(function (vehicle) {
-		let cvsLine = [];
-
-		for (let header of tableHeaders) {
-			cvsLine.push(vehicle[header]);
-		}
-
-		cvsLine = cvsLine.join();
-
-		return cvsLine;
-	});
-
-	csvLines.unshift(tableHeaders.join());
-
-	csvLines = csvLines.join(ENV.LINE_SEPARATOR);
-
-	// Persist the changes in the File System
-	await writeFilePromise(ENV.FILE_PATH, csvLines);
-}
 
 // This collects the options from the Vehicles into a global dictionary of lists
 function collectOptions() {
-	for (let vehicle of vehicles) {
+	for (let vehicle of collection.vehicles) {
 		for (let key in options) {
 			if (!options[key].includes(vehicle[key])) {
 				options[key].push(vehicle[key]);
@@ -125,7 +75,7 @@ async function printAndGetInput(options) {
 	selectedOption = selectedOption.toLowerCase();
 
 	// If the user input is not a number this will give a NaN
-	if (ACTION_LIST.includes(selectedOption)) {
+	if (ENV.ACTION_LIST.includes(selectedOption)) {
 		return selectedOption;
 	}
 
@@ -163,7 +113,7 @@ async function listFilteredVehicles(property, selectedOption) {
 		return;
 	}
 
-	const filteredVehicles = getVehicles(property, selectedOption)
+	const filteredVehicles = collection.getVehicles(property, selectedOption)
 
 	let optionIndex = 1;
 	for (let vehicle of filteredVehicles) {
@@ -226,7 +176,7 @@ Enter a desired option: `);
 				return;
 
 			case "d":
-				deleteVehicle(vehicleId);
+				collection.deleteVehicle(vehicleId);
 				// This will get us back to the Main menu
 				menuLevel = 0
 				isValidAction = true
@@ -234,7 +184,7 @@ Enter a desired option: `);
 
 			case "e":
 				const updatedVehicle = await mutateVehicle(vehicleId)
-				await editVehicle(vehicleId, updatedVehicle);
+				await collection.editVehicle(vehicleId, updatedVehicle);
 				// This will get us back to the Main menu
 				menuLevel = 0
 				isValidAction = true
@@ -257,7 +207,7 @@ async function mutateVehicle (carId){
 	let car
 
 	try{
-		car = carId ? findVehicle(carId) : {}
+		car = carId !== undefined ? collection.findVehicle(carId) : {}
 	}
 	catch(error){
 		return
@@ -275,7 +225,15 @@ async function mutateVehicle (carId){
 async function main() {
 	//await fetchData();
 
-	await readData();
+	const {elements: vehicles, tableHeaders: headers} = await readData();
+
+	tableHeaders = headers
+
+	collection = new vehicleCollection({vehicles, headers})
+
+	for (let header of tableHeaders) {
+		options[header] = [];
+	}
 
 	collectOptions();
 
@@ -293,7 +251,7 @@ async function main() {
 			switch (userInput) {
 				case "a":
 					const newVehicle = await mutateVehicle()
-					await addVehicle(newVehicle);
+					await collection.addVehicle(newVehicle);
 					break;
 
 				case "q":
