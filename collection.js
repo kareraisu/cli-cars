@@ -48,6 +48,11 @@ export default class vehicleCollection {
 	}
 
 	getVehicles(property, value) {
+		
+		if (property === undefined || value === undefined){
+			return this.vehicles
+		}
+		
 		const filteredVehicles = this.vehicles.filter(
 			(vehicle) => vehicle[property] == value
 		);

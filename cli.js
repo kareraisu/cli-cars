@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 import * as readlineCallBack from "node:readline";
-import vehicleCollection from "./api.js"
+import vehicleCollection from "./collection.js"
 import {readData} from "./util.js"
 import ENV from "./config.js"
 
