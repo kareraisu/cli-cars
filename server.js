@@ -1,48 +1,43 @@
 import express from "express"
-import vehicleCollection from "./collection.js"
-import {readData} from "./util.js"
-
 import bodyParser from "body-parser"
 
-const {elements: vehicles, tableHeaders: headers} = await readData();
+import Collection from "./collection.js"
+import ENV from "./config.js"
 
-const collection = new vehicleCollection({vehicles, headers})
 
+const app = express();
+const router = express.Router()
+let collection = await Collection.init()
 
-var app = express();
+router
+.get('/', function(req, res) {
 
-app.use(bodyParser.json())
-
-app.get('/', function(req, res) {
-  
     const {property, value} = req.query 
 
     const data = collection.getVehicles(property, value)
     
     res.json(data);
-});
+})
 
-//
-app.get('/:id', function(req, res) {
+.get('/:id', function(req, res) {
   
     const id = parseInt(req.params.id)
 
     const data = collection.findVehicle(id)
     
     res.json(data);
-});
+})
 
+.delete('/:id', function(req, res) {
 
-app.delete('/:id', function(req, res) {
-
-    const id = parseInt(req.params.id) 
+    const id = parseInt(req.params.id)
 
     collection.deleteVehicle(id)
 
     res.end()
-});
+})
 
-app.put('/:id', async function(req, res) {
+.put('/:id', function(req, res) {
 
     const id = parseInt(req.params.id) 
 
@@ -55,18 +50,20 @@ app.put('/:id', async function(req, res) {
         res.status(400).send(error.message)
     }
 
-});
+})
 
-app.post('/', function(req, res) {
+.post('/', function(req, res) {
 
     const newVehicle = req.body
 
     collection.addVehicle(newVehicle)
 
     res.end()
+})
 
-});
-
-app.listen(3000, function() {
-  console.log('Aplicación ejemplo corriendo, escuchando el puerto 3000!');
-});
+app
+.use(bodyParser.json())
+.use(ENV.API_PATH, router)
+.listen(ENV.API_PORT, function() {
+  console.log(`API ready on port ${ENV.API_PORT} and path '${ENV.API_PATH}'`);
+})

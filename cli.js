@@ -1,29 +1,25 @@
 #!/usr/bin/env node
-import * as readlineCallBack from "node:readline";
-import vehicleCollection from "./collection.js"
-import {readData} from "./util.js"
+import * as readline from "node:readline";
+import Collection from "./collection.js"
 import ENV from "./config.js"
 
-const rl = readlineCallBack.createInterface({
+
+const rl = readline.createInterface({
 	input: process.stdin,
 	output: process.stdout,
 });
-
-
 //when done reading rl, exit program
 rl.on("close", () => process.exit(0));
-
 
 let collection
 let options = {};
 let tableHeaders = [];
 let menuLevel = 0;
 
-
 async function question(question, defaultAnswer) {
 	return new Promise(function (resolve) {
 		
-		// This callBack is going to be called when the user press the Enter key
+		// This callBack is going to be called when the user presses the Enter key
 		rl.question(question, function(answer) {
 			resolve(answer)
 		});
@@ -35,11 +31,16 @@ async function question(question, defaultAnswer) {
 	});
 }
 
-
-// This collects the options from the Vehicles into a global dictionary of lists
+// This collects the values from the Vehicles into a global dictionary of lists
 function collectOptions() {
+	tableHeaders = collection.headers
+
 	for (let vehicle of collection.vehicles) {
-		for (let key in options) {
+		for (let key of tableHeaders) {
+			if (!options[key]) {
+				// Initialize the list (this will happen for the first vehicle)
+				options[key] = []
+			}
 			if (!options[key].includes(vehicle[key])) {
 				options[key].push(vehicle[key]);
 			}
@@ -48,14 +49,10 @@ function collectOptions() {
 }
 
 async function printAndGetInput(options) {
-	let index = 0;
 
 	const isInMainMenu = menuLevel == 0
 
-	let selectedOption;
-
 	console.log();
-	console.log("Please select a filter")
 
 	if (isInMainMenu) {
 		console.log("Q. (Quit)");
@@ -65,20 +62,21 @@ async function printAndGetInput(options) {
 	}
 
 	// List the options
+	let index = 0;
 	for (let option of options) {
 		console.log(`${index + 1}` + ". " + option);
 		index++;
 	}
-
 	console.log();
-	selectedOption = await question(`Enter a desired option: `);
+
+	let selectedOption = await question(`Please select an option: `);
 	selectedOption = selectedOption.toLowerCase();
 
-	// If the user input is not a number this will give a NaN
 	if (ENV.ACTION_LIST.includes(selectedOption)) {
 		return selectedOption;
 	}
-
+	
+	// If the user input is not a number this will give a NaN
 	selectedOption = parseInt(selectedOption);
 
 	if (selectedOption == 0) {
@@ -107,9 +105,7 @@ The options are:`);
 
 async function listFilteredVehicles(property, selectedOption) {
 	if (selectedOption == undefined) {
-		console.log(
-			"The option entered is not valid, it is not in the set of valid options"
-		);
+		console.log("The option entered is not valid");
 		return;
 	}
 
@@ -127,27 +123,24 @@ async function listFilteredVehicles(property, selectedOption) {
 	}
 
 	await chooseVehicle(filteredVehicles)
-
 }
 
 async function chooseVehicle(arrayOfVehicles = []) {
-	// Get the id of Vehicle
 	let chosenVehicleId;
-	let isNumber
 
 	do {
-		chosenVehicleId = await question(`Select a vehicle`);
+		console.log()
+		chosenVehicleId = await question(`Please select a vehicle: `);
 		chosenVehicleId = parseInt(chosenVehicleId);
-		
-	} while (chosenVehicleId > arrayOfVehicles.length );
+	}
+	while (chosenVehicleId > arrayOfVehicles.length);
 
-	//chosenVehicleId > arrayOfVehicles.length
 	chosenVehicleId -= 1;
 
+	console.log()
 	console.log("The selected vehicle is:", arrayOfVehicles[chosenVehicleId]);
 
 	await chooseAction(chosenVehicleId)
-
 }
 
 async function chooseAction(vehicleId){
@@ -176,37 +169,28 @@ Enter a desired option: `);
 				return;
 
 			case "d":
-				collection.deleteVehicle(vehicleId);
-				// This will get us back to the Main menu
-				menuLevel = 0
-				isValidAction = true
+				await collection.deleteVehicle(vehicleId);
+				menuLevel = 0 // This will get us back to the Main menu
+				isValidAction = true // Exit loop
 				break;
 
 			case "e":
 				const updatedVehicle = await mutateVehicle(vehicleId)
 				await collection.editVehicle(vehicleId, updatedVehicle);
-				// This will get us back to the Main menu
 				menuLevel = 0
 				isValidAction = true
 				break;
 
 			default:
 				console.log(`The option entered is not valid.`);
-				
 		}
 
 	}
 }
 
-async function mutateVehicle (carId){
-	// Get the user input according to the Tableheaders (marca, modelo, año ,motor, tipo ,proposito)
-	console.log(
-		"Then the system will request the characteristics of the vehicle"
-	);
-
+async function mutateVehicle(carId) {
 	let car
-
-	try{
+	try {
 		car = carId !== undefined ? collection.findVehicle(carId) : {}
 	}
 	catch(error){
@@ -214,26 +198,17 @@ async function mutateVehicle (carId){
 	}
 	
 	for (let key of tableHeaders) {
-		
-		const answer = await question(`Please provide a value for ${key}:`, car[key])
+		// Get the user input for each table header (marca, modelo, etc)
+		const answer = await question(`Please provide a value for ${key}: `, car[key])
 		car[key] = answer
-		
-	}	
+	}
+
 	return car
 }
 
 async function main() {
-	//await fetchData();
 
-	const {elements: vehicles, tableHeaders: headers} = await readData();
-
-	tableHeaders = headers
-
-	collection = new vehicleCollection({vehicles, headers})
-
-	for (let header of tableHeaders) {
-		options[header] = [];
-	}
+	collection = await Collection.init()
 
 	collectOptions();
 
@@ -267,11 +242,10 @@ async function main() {
 		let selectedOption = await printAndGetInput(options[property]);
 		// We decrement to be 0-indexed
 		selectedOption = selectedOption - 1;
+
 		const value = options[property][selectedOption];
 
 		await listFilteredVehicles(property, value);
-		
-
 	}
 }
 

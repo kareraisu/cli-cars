@@ -1,40 +1,28 @@
 {
 	"name": "cli-cars",
-	"version": "0.0.0",
-	"description": "My awesome command-line tool",
+	"version": "0.0.1",
+	"description": "Car catalog app, usable via cli and as an api",
 	"license": "MIT",
 	"repository": "kareraisu/cli-cars",
-	"author": {
-		"name": "YOUR NAME",
-		"email": "YOUR EMAIL",
-		"url": "YOUR WEBSITE"
-	},
 	"type": "module",
-	"bin": {
-		"unicorn-fun": "cli.js"
-	},
 	"engines": {
-		"node": ">=12"
+		"node": ">=18"
 	},
 	"scripts": {
-		"test": "xo && ava",
-		"start": "node server.js"
+		"cli": "node cli.js",
+		"server": "node server.js",
+		"test": "xo && ava"
 	},
-	"files": [
-		"cli.js"
-	],
 	"keywords": [
 		"cli",
-		"cli-app",
-		"unicorn",
-		"fun"
+		"cli-app"
 	],
+	"dependencies": {
+		"express": "^4.18.1"
+	},
 	"devDependencies": {
 		"ava": "^3.15.0",
 		"execa": "^5.0.0",
 		"xo": "^0.37.0"
-	},
-	"dependencies": {
-		"express": "^4.18.1"
 	}
 }
