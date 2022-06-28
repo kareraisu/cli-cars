@@ -1,33 +1,30 @@
 import express from "express"
-import vehicleCollection from "./collection.js"
-import {readData} from "./util.js"
-
-const {elements: vehicles, tableHeaders: headers} = await readData();
-
-const collection = new vehicleCollection({vehicles, headers})
+import Collection from "./collection.js"
+import ENV from "./config.js"
 
 
-var app = express();
+const app = express();
+const router = express.Router()
+let collection = await Collection.init()
 
-app.get('/', function(req, res) {
-  
+router
+.get('/', function(req, res) {
+
     const {property, value} = req.query 
 
     const data = collection.getVehicles(property, value)
     
     res.json(data);
-});
+})
+.delete('/:id', function(req, res) {
 
-app.delete('/:id', function(req, res) {
-
-    const id = req.params.id
+    const id = parseInt(req.params.id)
 
     collection.deleteVehicle(id)
 
     res.end()
-});
-
-app.put('/:id', function(req, res) {
+})
+.put('/:id', function(req, res) {
 
     const id = req.params.id
 
@@ -36,19 +33,18 @@ app.put('/:id', function(req, res) {
     collection.editVehicle(id, updatedData)
 
     res.end()
-
-});
-
-app.post('/', function(req, res) {
+})
+.post('/', function(req, res) {
 
     const newVehicle = req.body
 
     collection.addVehicle(newVehicle)
 
     res.end()
+})
 
-});
-
-app.listen(3000, function() {
-  console.log('Aplicación ejemplo, escuchando el puerto 3000!');
-});
+app
+.use(ENV.API_PATH, router)
+.listen(ENV.API_PORT, function() {
+  console.log(`API ready on port ${ENV.API_PORT} and path '${ENV.API_PATH}'`);
+})

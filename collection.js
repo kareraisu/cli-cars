@@ -1,25 +1,25 @@
-import { persistCSV } from "./util.js";
+import { fetchData, readData, persistCSV } from "./util.js";
 
-export default class vehicleCollection {
+
+export default class Collection {
 	vehicles
 	headers
 
 	constructor({vehicles, headers}){
 		this.vehicles = vehicles
-
 		this.headers = headers
 	}
 
-	async addVehicle(newVehicle) {
+	async add(newVehicle) {
 		this.vehicles.push(newVehicle);
 		await persistCSV(this.headers, this.vehicles);
 	}
 
-	async editVehicle(id, updatedData) {
+	async update(id, updatedData) {
 		let vehicle;
 
 		try {
-			vehicle = this.findVehicle(id);
+			vehicle = this.find(id);
 		} catch (error) {
 			return;
 		}
@@ -30,24 +30,21 @@ export default class vehicleCollection {
 
 		Object.assign(vehicle, updatedData);
 
-		//vehicle = {...vehicle, ...updatedData}
-
-		// call to the persistCSV()
 		persistCSV(this.headers, this.vehicles);
 
-		console.log("Vehicle updated");
+		console.log("Updated element with id", id);
 	}
 
-	deleteVehicle(id) {
+	delete(id) {
 		// Search for the vechicle in Vechiles and remove it
 		this.vehicles = this.vehicles.filter((vehicle) => vehicle.id !== id);
 
 		persistCSV(this.headers, this.vehicles);
 
-		console.log("Vehicle deleted");
+		console.log("Deleted element with id", id);
 	}
 
-	getVehicles(property, value) {
+	get(property, value) {
 		
 		if (property === undefined || value === undefined){
 			return this.vehicles
@@ -60,13 +57,32 @@ export default class vehicleCollection {
 		return filteredVehicles;
 	}
 
-	findVehicle(id) {
+	find(id) {
 		let car = this.vehicles.find((vehicle) => vehicle?.id == id);
 	
 		if (!car) {
-			console.error("Error, the vhicle doesn't exist");
-			throw new Error("Error, the vhicle doesn't exist");
+			const errorMsg = "The vehicle doesn't exist"
+			console.error(errorMsg);
+			throw new Error(errorMsg);
 		}
+
 		return car;
+	}
+
+	static async init() {
+		let data
+		try {
+			data = await readData();
+		}
+		catch(err) {
+			console.warn('Could not read data from file system, fetching from url...')
+			data = await fetchData()
+			const {headers, elements} = data
+			await persistCSV(headers, elements)
+		}
+		return new Collection({
+			vehicles: data.elements,
+			headers: data.headers
+		})
 	}
 }
