@@ -24,8 +24,6 @@ router
     const id = req.params.id
 
     const data = collection.find(id)
-    
-    //res.json(data);
 
     try{
         collection.find(id)
@@ -76,5 +74,5 @@ app
 .use(bodyParser.json())
 .use(ENV.API_PATH, router)
 .listen(ENV.API_PORT, function() {
-  console.log(`API ready on port ${ENV.API_PORT} and path '${ENV.API_PATH}'`);
+    console.log(`API ready on port ${ENV.API_PORT} and path '${ENV.API_PATH}'`);
 })

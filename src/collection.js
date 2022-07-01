@@ -2,56 +2,51 @@ import { fetchData, readData, persistCSV } from "./util.js";
 
 
 export default class Collection {
-	vehicles
+	elements
 	headers
 
-	constructor({vehicles, headers}){
-		this.vehicles = vehicles
+	constructor({elements, headers}){
+		this.elements = elements
 		this.headers = headers
 	}
 
-	async add(newVehicle) {
-		this.checkFields(newVehicle)
+	async add(newElement) {
+		this.checkFields(newElement)
 		
-		this.vehicles.push(newVehicle);
-		await persistCSV(this.headers, this.vehicles);
+		this.elements.push(newElement);
+		await persistCSV(this.headers, this.elements);
 		
-		console.log("New vehicle added successfully");
+		console.log("New element added successfully");
 	}
 
 	async update(id, updatedData) {
-		let vehicle;
+		let element;
 
 		try {
-			vehicle = this.find(id);
+			element = this.find(id);
 		} catch (error) {
-			throw new Error("Invalid vehicle ID or the ID doesn't exist")
+			throw new Error("Invalid element ID or the ID doesn't exist")
 		}
 
 		if (updatedData === undefined) {
 			console.error("There is not data to update");
-			throw new Error("Missing vehicle data")
+			throw new Error("Missing element data")
 		}
 
 		this.checkFields(updatedData)
 
-		// Checkeaer las properties - falta
+		Object.assign(element, updatedData);
 
-		Object.assign(vehicle, updatedData);
-
-		//vehicle = {...vehicle, ...updatedData}
-
-		// call to the persistCSV()
-		await persistCSV(this.headers, this.vehicles);
+		await persistCSV(this.headers, this.elements);
 
 		console.log("Updated element with id", id);
 	}
 
 	async delete(id) {
 		// Search for the vechicle in Vechiles and remove it
-		this.vehicles = this.vehicles.filter((vehicle) => vehicle.id !== id);
+		this.elements = this.elements.filter((element) => element.id !== id);
 
-		await persistCSV(this.headers, this.vehicles);
+		await persistCSV(this.headers, this.elements);
 
 		console.log("Deleted element with id", id);
 	}
@@ -59,21 +54,21 @@ export default class Collection {
 	get(property, value) {
 		
 		if (property === undefined || value === undefined){
-			return this.vehicles
+			return this.elements
 		}
 		
-		const filteredVehicles = this.vehicles.filter(
-			(vehicle) => vehicle[property] == value
+		const filteredElements = this.elements.filter(
+			(element) => element[property] == value
 		);
 
-		return filteredVehicles;
+		return filteredElements;
 	}
 
 	find(id) {
-		let car = this.vehicles.find((vehicle) => vehicle?.id == id);
+		let car = this.elements.find((element) => element?.id == id);
 	
 		if (!car) {
-			const errorMsg = "Invalid vehicle ID or the ID doesn't exist"
+			const errorMsg = "Invalid element ID or the ID doesn't exist"
 			console.error(errorMsg);
 			throw new Error(errorMsg);
 		}
@@ -103,7 +98,7 @@ export default class Collection {
 			await persistCSV(headers, elements)
 		}
 		return new Collection({
-			vehicles: data.elements,
+			elements: data.elements,
 			headers: data.headers
 		})
 	}

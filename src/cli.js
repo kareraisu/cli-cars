@@ -31,18 +31,19 @@ async function question(question, defaultAnswer) {
 	});
 }
 
-// This collects the values from the Vehicles into a global dictionary of lists
+// This collects the values from the elements into a global dictionary of lists
 function collectOptions() {
 	tableHeaders = collection.headers
 
-	for (let vehicle of collection.vehicles) {
-		for (let key of tableHeaders) {
-			if (!options[key]) {
-				// Initialize the list (this will happen for the first vehicle)
-				options[key] = []
+	for (let element of collection.elements) {
+		for (let property of tableHeaders) {
+			if (!options[property]) {
+				// Initialize the list (this will happen for the first element)
+				options[property] = []
 			}
-			if (!options[key].includes(vehicle[key])) {
-				options[key].push(vehicle[key]);
+			const value = element[property]
+			if (!options[property].includes(value)) {
+				options[property].push(value)
 			}
 		}
 	}
@@ -103,47 +104,47 @@ The options are:`);
 	}
 }
 
-async function listFilteredVehicles(property, selectedOption) {
-	if (selectedOption == undefined) {
+async function listFilteredElements(property, value) {
+	if (value == undefined) {
 		console.log("The option entered is not valid");
 		return;
 	}
 
-	const filteredVehicles = collection.getVehicles(property, selectedOption)
+	const filteredElements = collection.get(property, value)
 
 	let optionIndex = 1;
-	for (let vehicle of filteredVehicles) {
+	for (let element of filteredElements) {
 		console.log(
 			`${optionIndex}` + ".",
-			vehicle[tableHeaders[0]],
-			vehicle[tableHeaders[1]],
-			vehicle[tableHeaders[2]]
+			element[tableHeaders[0]],
+			element[tableHeaders[1]],
+			element[tableHeaders[2]]
 		);
 		optionIndex++;
 	}
 
-	await chooseVehicle(filteredVehicles)
+	await chooseItem(filteredElements)
 }
 
-async function chooseVehicle(arrayOfVehicles = []) {
-	let chosenVehicleId;
+async function chooseItem(items = []) {
+	let chosenItem;
 
 	do {
 		console.log()
-		chosenVehicleId = await question(`Please select a vehicle: `);
-		chosenVehicleId = parseInt(chosenVehicleId);
+		chosenItem = await question(`Please select an item: `);
+		chosenItem = parseInt(chosenItem);
 	}
-	while (chosenVehicleId > arrayOfVehicles.length);
+	while (chosenItem > items.length);
 
-	chosenVehicleId -= 1;
+	const element = items[chosenItem - 1] // We need to decrement to be 0-indexed
 
 	console.log()
-	console.log("The selected vehicle is:", arrayOfVehicles[chosenVehicleId]);
+	console.log("The selected item is:", element);
 
-	await chooseAction(chosenVehicleId)
+	await chooseAction(element.id)
 }
 
-async function chooseAction(vehicleId){
+async function chooseAction(elementId){
 	let action;
 	let isValidAction = false
 
@@ -169,14 +170,14 @@ Enter a desired option: `);
 				return;
 
 			case "d":
-				await collection.deleteVehicle(vehicleId);
+				await collection.delete(elementId);
 				menuLevel = 0 // This will get us back to the Main menu
 				isValidAction = true // Exit loop
 				break;
 
 			case "e":
-				const updatedVehicle = await mutateVehicle(vehicleId)
-				await collection.editVehicle(vehicleId, updatedVehicle);
+				const updatedElement = await mutateElement(elementId)
+				await collection.update(elementId, updatedElement);
 				menuLevel = 0
 				isValidAction = true
 				break;
@@ -188,22 +189,22 @@ Enter a desired option: `);
 	}
 }
 
-async function mutateVehicle(carId) {
-	let car
+async function mutateElement(id) {
+	let element
 	try {
-		car = carId !== undefined ? collection.findVehicle(carId) : {}
+		element = id !== undefined ? collection.find(id) : {}
 	}
 	catch(error){
 		return
 	}
 	
-	for (let key of tableHeaders) {
-		// Get the user input for each table header (marca, modelo, etc)
-		const answer = await question(`Please provide a value for ${key}: `, car[key])
-		car[key] = answer
+	for (let property of tableHeaders) {
+		// Get the user input for each property, providing the current value as default
+		const value = await question(`Please provide a value for ${property}: `, element[property])
+		element[property] = value
 	}
 
-	return car
+	return element
 }
 
 async function main() {
@@ -225,8 +226,8 @@ async function main() {
 
 			switch (userInput) {
 				case "a":
-					const newVehicle = await mutateVehicle()
-					await collection.addVehicle(newVehicle);
+					const newVehicle = await mutateElement()
+					await collection.add(newVehicle);
 					break;
 
 				case "q":
@@ -240,12 +241,10 @@ async function main() {
 		}
 
 		let selectedOption = await printAndGetInput(options[property]);
-		// We decrement to be 0-indexed
-		selectedOption = selectedOption - 1;
 
-		const value = options[property][selectedOption];
+		const value = options[property][selectedOption - 1]; // We need to decrement to be 0-indexed
 
-		await listFilteredVehicles(property, value);
+		await listFilteredElements(property, value);
 	}
 }
 
