@@ -14,37 +14,44 @@ router
 
     const {property, value} = req.query 
 
-    const data = collection.getVehicles(property, value)
+    const data = collection.get(property, value)
     
     res.json(data);
 })
 
 .get('/:id', function(req, res) {
   
-    const id = parseInt(req.params.id)
+    const id = req.params.id
 
-    const data = collection.findVehicle(id)
+    const data = collection.find(id)
     
-    res.json(data);
+    //res.json(data);
+
+    try{
+        collection.find(id)
+        res.json(data);
+    } catch (error){
+        res.status(400).send(error.message)
+    }
 })
 
-.delete('/:id', function(req, res) {
+.delete('/:id', async function(req, res) {
 
     const id = parseInt(req.params.id)
 
-    collection.deleteVehicle(id)
+    await collection.delete(id)
 
     res.end()
 })
 
-.put('/:id', function(req, res) {
+.put('/:id', async function(req, res) {
 
-    const id = parseInt(req.params.id) 
+    const id = req.params.id
 
     const updatedData = req.body
 
     try{
-        await collection.editVehicle(id, updatedData)
+        await collection.update(id, updatedData)
         res.end()
     } catch (error){
         res.status(400).send(error.message)
@@ -52,13 +59,17 @@ router
 
 })
 
-.post('/', function(req, res) {
+.post('/', async function(req, res) {
 
     const newVehicle = req.body
 
-    collection.addVehicle(newVehicle)
+    try{
+        await collection.add(newVehicle)
+        res.end()
+    } catch (error){
+        res.status(400).send(error.message)
+    }
 
-    res.end()
 })
 
 app

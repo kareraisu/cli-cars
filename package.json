@@ -9,8 +9,8 @@
 		"node": ">=18"
 	},
 	"scripts": {
-		"cli": "node cli.js",
-		"server": "node server.js",
+		"cli": "node src/cli.js",
+		"server": "node src/server.js",
 		"test": "xo && ava"
 	},
 	"keywords": [

@@ -60,7 +60,7 @@ export function parseCSV(data) {
 		.split(",")
 		.map((el) => el.toLowerCase().trim());
 
-	let indexId = 0;
+	//let indexId = 0;
 	for (let row of rows) {
 		const values = row.split(",");
 
@@ -70,11 +70,11 @@ export function parseCSV(data) {
 		]);
 
 		const element = Object.fromEntries(entries);
-		element.id = indexId;
+		element.id = String(performance.now())  
 
 		elements.push(element);
 
-		indexId += 1;
+		//indexId += 1;
 	}
 
 	console.log("Parse successful")

@@ -11,6 +11,8 @@ export default class Collection {
 	}
 
 	async add(newVehicle) {
+		this.checkFields(newVehicle)
+		
 		this.vehicles.push(newVehicle);
 		await persistCSV(this.headers, this.vehicles);
 		
@@ -23,13 +25,15 @@ export default class Collection {
 		try {
 			vehicle = this.find(id);
 		} catch (error) {
-			throw new Error("Invalid vehicle ID")
+			throw new Error("Invalid vehicle ID or the ID doesn't exist")
 		}
 
 		if (updatedData === undefined) {
 			console.error("There is not data to update");
 			throw new Error("Missing vehicle data")
 		}
+
+		this.checkFields(updatedData)
 
 		// Checkeaer las properties - falta
 
@@ -69,12 +73,22 @@ export default class Collection {
 		let car = this.vehicles.find((vehicle) => vehicle?.id == id);
 	
 		if (!car) {
-			const errorMsg = "The vehicle doesn't exist"
+			const errorMsg = "Invalid vehicle ID or the ID doesn't exist"
 			console.error(errorMsg);
 			throw new Error(errorMsg);
 		}
 
 		return car;
+	}
+
+	checkFields(dataFields){
+
+		for (let key of this.headers) {
+	
+			if ( !(typeof dataFields[key] === 'string') ){
+				throw new Error("The next field >"+`${key}`+"< contain a value that is not a String.")
+			}		
+		}
 	}
 
 	static async init() {
